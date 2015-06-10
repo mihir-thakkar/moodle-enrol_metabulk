@@ -30,37 +30,29 @@ class enrol_metabulk_edit_form extends moodleform {
     protected $course;
 
     public function definition() {
-        global $CFG, $DB, $PAGE;
+        global $CFG, $DB;
 
         $mform  = $this->_form;
         list($instance, $course) = $this->_customdata;
         $this->course = $course;
-
+        $coursecontext = context_course::instance($course->id);
         $enrol = enrol_get_plugin('metabulk');
         $mform->addElement('header' , 'general' , get_string('pluginname' , 'enrol_metabulk'));
         $mform->addElement('text', 'name', get_string('custominstancename', 'enrol'));
         $mform->setType('name', PARAM_TEXT);
 
+        $mform->addElement('hidden', 'courseid', null);
+        $mform->setType('courseid', PARAM_INT);
+
         $mform->addElement('hidden', 'id', null);
         $mform->setType('id', PARAM_INT);
 
-        $this->add_action_buttons(true, get_string('add'));
-        $this->set_data(array('id' => $course->id));
-
+        if ($instance->id) {
+            $this->add_action_buttons(true);
+        } else {
+            $this->add_action_buttons(true, get_string('add'));
+        }
         $this->set_data($instance);
-    }
-
-    /**
-     * Adds buttons on create new method form
-     */
-    protected function add_add_buttons() {
-        $mform = $this->_form;
-        $buttonarray = array();
-        $buttonarray[0] = $mform->createElement('submit', 'submitbutton', get_string('addinstance', 'enrol'));
-        $buttonarray[1] = $mform->createElement('submit', 'submitbuttonnext', get_string('addinstanceanother', 'enrol'));
-        $buttonarray[2] = $mform->createElement('cancel');
-        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
-        $mform->closeHeaderBefore('buttonar');
     }
 
     public function validation($data, $files) {

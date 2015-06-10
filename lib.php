@@ -42,7 +42,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
             return null;
         }
         // Multiple instances supported - multiple parent courses linked.
-        return new moodle_url('/enrol/metabulk/edit.php', array('id' => $courseid) );
+        return new moodle_url('/enrol/metabulk/edit.php', array('courseid' => $courseid) );
     }
 
     /**
@@ -83,7 +83,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
         if (has_capability('enrol/metabulk:config', $context)) {
             $editlink = new moodle_url("/enrol/metabulk/edit.php",
-                array('id' => $instance->courseid, 'instanceid' => $instance->id));
+                array('courseid' => $instance->courseid, 'id' => $instance->id));
             $icons[] = $OUTPUT->action_icon($editlink, new pix_icon('t/edit', get_string('edit'), 'core',
                 array('class' => 'iconsmall')));
         }
