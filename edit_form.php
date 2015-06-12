@@ -50,11 +50,24 @@ class enrol_metabulk_edit_form extends moodleform {
         if ($instance->id) {
             $this->add_action_buttons(true);
         } else {
-            $this->add_action_buttons(true, get_string('add'));
+            $this->add_add_buttons();
         }
         $this->set_data($instance);
     }
 
+    /**
+     * Adds buttons on create new method form
+     */
+    protected function add_add_buttons() {
+        $mform = $this->_form;
+        $buttonarray = array();
+        $buttonarray[0] = $mform->createElement('submit', 'submitbutton', get_string('addinstance', 'enrol'));
+        $buttonarray[1] = $mform->createElement('submit', 'submitbuttonnext', get_string('addinstanceanother', 'enrol'));
+        $buttonarray[2] = $mform->createElement('cancel');
+        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+        $mform->closeHeaderBefore('buttonar');
+    }
+    
     public function validation($data, $files) {
         // Validation data.
     }

@@ -77,13 +77,11 @@ if ($mform->is_cancelled()) {
 } else if ($data = $mform->get_data()) {
     // Entry already there in enrol table.
     if($instance->id) {
-        $instance->name         = $data->name; 
-        $instance->timemodified = time();
-        $DB->update_record('enrol', $instance);
+        $enrol->update_instance($instance, array('name' => $data->name));
     } else {
         $enrol->add_instance($course, array('name' => $data->name));  
         if (!empty($data->submitbuttonnext)) {
-            $returnurl->param('message', 'added');
+            redirect(new moodle_url('/enrol/metabulk/edit.php', array('courseid' => $course->id, 'message' => 'added')));
         }
     }
     redirect($returnurl);

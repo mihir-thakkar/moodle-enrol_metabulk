@@ -64,7 +64,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
      */
     public function can_delete_instance($instance) {
         $context = context_course::instance($instance->courseid);
-        return has_capability('enrol/meta:config', $context);
+        return has_capability('enrol/metabulk:config', $context);
     }
     /**
      * Returns edit icons for the page with list of instances.
@@ -90,4 +90,24 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
         return $icons;
     }
+
+    /**
+     * Update an instance of enrol metabulk plugin.
+     * @param object $instance
+     * @param array instance fields
+     * @return int id of updated instance, null if can not be created
+     */
+    public function update_instance($instance, array $fields = NULL) {
+        global $DB;
+
+        $instance->timemodified   = time();
+
+        $fields = (array)$fields;
+        foreach($fields as $field=>$value) {
+            $instance->$field = $value;
+        }
+
+        return $DB->update_record('enrol', $instance);
+    }
+
 }
