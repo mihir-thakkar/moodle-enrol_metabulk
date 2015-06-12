@@ -33,10 +33,48 @@ Feature: Enrolments are synchronised with meta courses
     And I click on "Enable" "link" in the "Bulk meta course link" "table_row"
     And I am on homepage
     And I follow "Courses"
+  
   @runonlythis
-  Scenario: Add meta enrolment instance without groups
+  Scenario: Add bulk meta enrolment instance
     When I follow "Course 3"
     And I add "Bulk meta course link" enrolment method with:
       | Custom instance name  | testname1 |
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     Then I should see "testname1" in the "table.generaltable" "css_element"
+  
+  @runonlythis
+  Scenario: Add multiple bulk meta enrolment instances to a course
+    When I follow "Course 3"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    And I set the field "Add method" to "Bulk meta course link"
+    And I press "Go"
+    And I set the following fields to these values:
+      | Custom instance name  | testname1 |
+    And I press "Add method and create another"
+    And I set the following fields to these values:
+      | Custom instance name  | testname2 |
+    And I press "Add method"
+    And I navigate to "Enrolled users" node in "Course administration > Users"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    Then I should see "testname1" in the "table.generaltable" "css_element"
+    And I should see "testname2" in the "table.generaltable" "css_element"
+
+  @runonlythis
+  Scenario: Edit bulk meta enrolment instances to a course
+    When I follow "Course 3"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    And I set the field "Add method" to "Bulk meta course link"
+    And I press "Go"
+    And I set the following fields to these values:
+      | Custom instance name  | testname1 |
+    And I press "Add method"
+    When I follow "Course 3"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    And I click on "Edit" "link" in the "testname1" "table_row"
+    And I set the following fields to these values:
+      | Custom instance name  | testname3 |
+    And I press "Save changes"
+    And I navigate to "Enrolled users" node in "Course administration > Users"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    Then I should see "testname3" in the "table.generaltable" "css_element"
+    And I should not see "testname1" in the "table.generaltable" "css_element"
