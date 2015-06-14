@@ -33,7 +33,14 @@ $capabilities = array(
             'editingteacher' => CAP_ALLOW,
         )
     ),
-
+    // select some course as source
+    'enrol/metabulk:selectaslinked' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW,
+        )
+    ),
 );
 
 

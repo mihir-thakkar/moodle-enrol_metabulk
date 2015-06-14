@@ -23,7 +23,23 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-function xmldb_enrolmeta_bulk_upgrade($oldversion) {
+function xmldb_enrol_metabulk_upgrade($oldversion) {
+    global $CFG, $DB;
     $dbman = $DB->get_manager();
+     if ($oldversion < 2015052101) {
+
+        // Define field id to be added to enrol_metabulk.
+        $table = new xmldb_table('enrol_metabulk');
+        $field = new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
+
+        // Conditionally launch add field id.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Metabulk savepoint reached.
+        upgrade_plugin_savepoint(true, 2015052101, 'enrol', 'metabulk');
+    }
+	
     return true;
 }

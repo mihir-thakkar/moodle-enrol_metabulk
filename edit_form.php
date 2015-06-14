@@ -33,14 +33,29 @@ class enrol_metabulk_edit_form extends moodleform {
         global $CFG, $DB;
 
         $mform  = $this->_form;
-        list($instance, $course) = $this->_customdata;
+        list($instance, $course, $availablecourses) = $this->_customdata;
         $this->course = $course;
         $coursecontext = context_course::instance($course->id);
         $enrol = enrol_get_plugin('metabulk');
+
         $mform->addElement('header' , 'general' , get_string('pluginname' , 'enrol_metabulk'));
         $mform->addElement('text', 'name', get_string('custominstancename', 'enrol'));
         $mform->setType('name', PARAM_TEXT);
 
+        // Multi select form element.
+        $select = $mform->addElement('select', 'link', get_string('linkbulk','enrol_metabulk'), $availablecourses, array('size'=>10, 'multiple'=>true));
+        $select->setMultiple(true);
+
+        // Search box.
+        $searchgroup = array();
+        $searchgroup[] = &$mform->createElement('text', 'links_searchtext');
+        $mform->setType('links_searchtext', PARAM_RAW);
+        $searchgroup[] = &$mform->createElement('submit', 'links_searchbutton', get_string('search'));
+        $mform->registerNoSubmitButton('links_searchbutton');
+        $searchgroup[] = &$mform->createElement('submit', 'links_clearbutton', get_string('clear'));
+        $mform->registerNoSubmitButton('links_clearbutton');
+        $mform->addGroup($searchgroup, 'searchgroup', get_string('search') , array(' '), false);
+        
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);
 

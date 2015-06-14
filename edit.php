@@ -47,8 +47,47 @@ if (!enrol_is_enabled('metabulk')) {
     redirect($returnurl);
 }
 
+// Get text from the Search box 'link_searchtext'
+$searchtext = optional_param('links_searchtext', '', PARAM_RAW);
+// If clear button pressed, redirect & empty the textbox
+if (optional_param('links_clearbutton', 0, PARAM_RAW) && confirm_sesskey()) {
+    redirect($pageurl);
+}
+
 $enrol = enrol_get_plugin('metabulk');
+$rowlimit = $enrol->get_config('addmultiple_rowlimit', 0);
+
+function get_valid_courses($rs) {
+    global $course;
+    $valid_courses = array();
+    
+    foreach ($rs as $c) {
+        if ($c->id == SITEID or $c->id == $course->id or isset($existing[$c->id])) {
+            continue;
+        }
+        $coursecontext = context_course::instance($c->id);
+        if (!$c->visible and !has_capability('moodle/course:viewhiddencourses', $coursecontext)) {
+            continue;
+        }
+        if (!has_capability('enrol/metabulk:selectaslinked', $coursecontext)) {
+            continue;
+        }
+        $valid_courses[$c->id] = format_string($c->fullname) . ' ['.$c->shortname.']';
+    }
+    return $valid_courses;
+}
+
 $availablecourses = array();
+$existing = $DB->get_records('enrol', array('enrol'=>'metabulk', 'courseid'=>$course->id));
+
+if (!empty($searchtext)) {
+    $courses = get_courses_search(explode(" ", $searchtext), 'shortname ASC', 0, 99999,$rowlimit);
+    $availablecourses = get_valid_courses($courses); // Use get_valid_courses($courses) instead of this
+} else {
+    $rs = $DB->get_recordset('course', null, 'shortname ASC', 'id, fullname, shortname, visible', 0);
+    $availablecourses = get_valid_courses($rs);
+    $rs->close();
+}
 
 if ($instanceid) {
     $instance = $DB->get_record('enrol', array('courseid' => $course->id, 'enrol' => 'metabulk', 'id' => $instanceid), '*', MUST_EXIST);
@@ -70,7 +109,7 @@ if ($courseadmin && $courseadmin->get('users') && $courseadmin->get('users')->ge
     $courseadmin->get('users')->get('manageinstances')->make_active();
 }
 
-$mform = new enrol_metabulk_edit_form(null, array($instance, $course));
+$mform = new enrol_metabulk_edit_form(null, array($instance, $course, $availablecourses));
 
 if ($mform->is_cancelled()) {
     redirect($returnurl);

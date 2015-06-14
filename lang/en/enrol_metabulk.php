@@ -24,5 +24,5 @@
 
 $string['pluginname'] = 'Bulk meta course link';
 $string['metabulk:config'] = 'Configure bulk meta enrol instances';
+$string['metabulk:selectaslinked'] = 'Select course as meta linked';
 $string['linkbulk'] = 'Link courses';
-$string['linkedcourse'] = 'Link course';
