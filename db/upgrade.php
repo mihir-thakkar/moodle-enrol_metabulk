@@ -17,7 +17,7 @@
 /**
  * This file keeps track of upgrades to the paypal enrolment plugin
  *
- * @package    enrol_meta_bulk
+ * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @author     Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -26,20 +26,31 @@
 function xmldb_enrol_metabulk_upgrade($oldversion) {
     global $CFG, $DB;
     $dbman = $DB->get_manager();
-     if ($oldversion < 2015052101) {
 
-        // Define field id to be added to enrol_metabulk.
+    if ($oldversion < 2015052104) {
+
+        // Define table enrol_metabulk to be created.
         $table = new xmldb_table('enrol_metabulk');
-        $field = new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
 
-        // Conditionally launch add field id.
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
+        // Adding fields to table enrol_metabulk.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('enrolid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('groupid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+        // Adding keys to table enrol_metabulk.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('enrolid', XMLDB_KEY_FOREIGN, array('enrolid'), 'enrol', array('id'));
+
+        // Conditionally launch create table for enrol_metabulk.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
         }
 
         // Metabulk savepoint reached.
-        upgrade_plugin_savepoint(true, 2015052101, 'enrol', 'metabulk');
+        upgrade_plugin_savepoint(true, 2015052104, 'enrol', 'metabulk');
     }
-	
+
     return true;
 }

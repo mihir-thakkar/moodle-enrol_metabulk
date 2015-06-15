@@ -17,7 +17,7 @@
 /**
  * Strings for component 'enrol_meta_bulk', language 'en'.
  *
- * @package    enrol_meta_bulk
+ * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

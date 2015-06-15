@@ -17,7 +17,7 @@
 /**
  * Capabilities for bulk meta link access plugin.
  *
- * @package    enrol_meta_bulk
+ * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -33,7 +33,7 @@ $capabilities = array(
             'editingteacher' => CAP_ALLOW,
         )
     ),
-    // select some course as source
+    // Select some course as source.
     'enrol/metabulk:selectaslinked' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,

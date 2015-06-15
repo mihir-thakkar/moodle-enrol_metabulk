@@ -17,7 +17,7 @@
 /**
  * Meta course bulk enrolment plugin.
  *
- * @package    enrol_meta_bulk
+ * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -97,17 +97,29 @@ class enrol_metabulk_plugin extends enrol_plugin {
      * @param array instance fields
      * @return int id of updated instance, null if can not be created
      */
-    public function update_instance($instance, array $fields = NULL) {
+    public function update_instance($instance, array $fields = null) {
         global $DB;
 
         $instance->timemodified   = time();
 
         $fields = (array)$fields;
-        foreach($fields as $field=>$value) {
+        foreach ($fields as $field => $value) {
             $instance->$field = $value;
         }
 
         return $DB->update_record('enrol', $instance);
     }
 
+    /**
+     * Search available courses matching the text in search box.
+     * @param object $searchtext $rowlimit
+     * @return available courses
+     */
+    public function search_courses($searchtext, $rowlimit) {
+
+        $courses = get_courses_search(explode(" ", $searchtext), 'shortname ASC', 0, 99999, $rowlimit);
+        $availablecourses = get_valid_courses($courses);
+
+        return $availablecourses;
+    }
 }

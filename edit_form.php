@@ -17,7 +17,7 @@
 /**
  * Create/Edit instance form
  *
- * @package    enrol_meta_bulk
+ * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -43,7 +43,8 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform->setType('name', PARAM_TEXT);
 
         // Multi select form element.
-        $select = $mform->addElement('select', 'link', get_string('linkbulk','enrol_metabulk'), $availablecourses, array('size'=>10, 'multiple'=>true));
+        $select = $mform->addElement('select', 'link', get_string('linkbulk', 'enrol_metabulk'), $availablecourses,
+            array('size' => 10, 'multiple' => true));
         $select->setMultiple(true);
 
         // Search box.
@@ -55,7 +56,7 @@ class enrol_metabulk_edit_form extends moodleform {
         $searchgroup[] = &$mform->createElement('submit', 'links_clearbutton', get_string('clear'));
         $mform->registerNoSubmitButton('links_clearbutton');
         $mform->addGroup($searchgroup, 'searchgroup', get_string('search') , array(' '), false);
-        
+
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);
 
@@ -82,7 +83,7 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->closeHeaderBefore('buttonar');
     }
-    
+
     public function validation($data, $files) {
         // Validation data.
     }

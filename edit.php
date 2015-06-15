@@ -17,7 +17,7 @@
 /**
  * Adds new instance of enrol_meta_bulk to specified course.
  *
- * @package    enrol_meta_bulk
+ * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -47,9 +47,9 @@ if (!enrol_is_enabled('metabulk')) {
     redirect($returnurl);
 }
 
-// Get text from the Search box 'link_searchtext'
+// Get text from the Search box 'link_searchtext'.
 $searchtext = optional_param('links_searchtext', '', PARAM_RAW);
-// If clear button pressed, redirect & empty the textbox
+// If clear button pressed, redirect & empty the textbox.
 if (optional_param('links_clearbutton', 0, PARAM_RAW) && confirm_sesskey()) {
     redirect($pageurl);
 }
@@ -59,8 +59,7 @@ $rowlimit = $enrol->get_config('addmultiple_rowlimit', 0);
 
 function get_valid_courses($rs) {
     global $course;
-    $valid_courses = array();
-    
+    $validcourses = array();
     foreach ($rs as $c) {
         if ($c->id == SITEID or $c->id == $course->id or isset($existing[$c->id])) {
             continue;
@@ -72,17 +71,16 @@ function get_valid_courses($rs) {
         if (!has_capability('enrol/metabulk:selectaslinked', $coursecontext)) {
             continue;
         }
-        $valid_courses[$c->id] = format_string($c->fullname) . ' ['.$c->shortname.']';
+        $validcourses[$c->id] = format_string($c->fullname) . ' ['.$c->shortname.']';
     }
-    return $valid_courses;
+    return $validcourses;
 }
 
 $availablecourses = array();
-$existing = $DB->get_records('enrol', array('enrol'=>'metabulk', 'courseid'=>$course->id));
+$existing = $DB->get_records('enrol', array('enrol' => 'metabulk', 'courseid' => $course->id));
 
 if (!empty($searchtext)) {
-    $courses = get_courses_search(explode(" ", $searchtext), 'shortname ASC', 0, 99999,$rowlimit);
-    $availablecourses = get_valid_courses($courses); // Use get_valid_courses($courses) instead of this
+    $availablecourses = $enrol->search_courses($searchtext, $rowlimit);
 } else {
     $rs = $DB->get_recordset('course', null, 'shortname ASC', 'id, fullname, shortname, visible', 0);
     $availablecourses = get_valid_courses($rs);
@@ -90,13 +88,14 @@ if (!empty($searchtext)) {
 }
 
 if ($instanceid) {
-    $instance = $DB->get_record('enrol', array('courseid' => $course->id, 'enrol' => 'metabulk', 'id' => $instanceid), '*', MUST_EXIST);
+    $instance = $DB->get_record('enrol',
+        array('courseid' => $course->id, 'enrol' => 'metabulk', 'id' => $instanceid), '*', MUST_EXIST);
 
 } else {
     if (!$enrol->get_newinstance_link($course->id)) {
         redirect($returnurl);
     }
-    navigation_node::override_active_url(new moodle_url('/enrol/instances.php', array('id'=>$course->id)));
+    navigation_node::override_active_url(new moodle_url('/enrol/instances.php', array('id' => $course->id)));
     $instance = new stdClass();
     $instance->id         = null;
     $instance->courseid   = $course->id;
@@ -115,10 +114,10 @@ if ($mform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $mform->get_data()) {
     // Entry already there in enrol table.
-    if($instance->id) {
+    if ($instance->id) {
         $enrol->update_instance($instance, array('name' => $data->name));
     } else {
-        $enrol->add_instance($course, array('name' => $data->name));  
+        $enrol->add_instance($course, array('name' => $data->name));
         if (!empty($data->submitbuttonnext)) {
             redirect(new moodle_url('/enrol/metabulk/edit.php', array('courseid' => $course->id, 'message' => 'added')));
         }
