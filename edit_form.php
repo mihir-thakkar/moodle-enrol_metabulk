@@ -43,8 +43,9 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform->setType('name', PARAM_TEXT);
 
         // Multi select form element.
-        $select = $mform->addElement('select', 'link', get_string('linkbulk', 'enrol_metabulk'), $availablecourses,
+        $select = $mform->addElement('select', 'links', get_string('linkbulk', 'enrol_metabulk'), $availablecourses,
             array('size' => 10, 'multiple' => true));
+        $mform->addRule('links', get_string('required'), 'required', null, 'client');
         $select->setMultiple(true);
 
         // Search box.

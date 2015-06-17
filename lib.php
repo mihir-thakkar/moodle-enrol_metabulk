@@ -37,11 +37,15 @@ class enrol_metabulk_plugin extends enrol_plugin {
      * @return moodle_url page url
      */
     public function get_newinstance_link($courseid) {
+        global $CFG;
         $context = context_course::instance($courseid, MUST_EXIST);
         if (!has_capability('moodle/course:enrolconfig', $context) or !has_capability('enrol/metabulk:config', $context)) {
             return null;
         }
         // Multiple instances supported - multiple parent courses linked.
+        if (!empty($CFG->enrol_meta_addmultiple)) {
+            return new moodle_url('/enrol/meta/addmultiple.php', array('id'=>$courseid));
+        }
         return new moodle_url('/enrol/metabulk/edit.php', array('courseid' => $courseid) );
     }
 
@@ -89,6 +93,73 @@ class enrol_metabulk_plugin extends enrol_plugin {
         }
 
         return $icons;
+    }
+
+    /**
+     * Add new instance of enrol plugin and adds multiple courses in one enrol instance.
+     * @param object $course
+     * @param array instance fields
+     * @return int id of new instance, null if can not be created
+     */
+    public function add_metabulk_instance($course, $eid, array $fields = NULL) {
+        global $DB;
+
+        if ($course->id == SITEID) {
+            throw new coding_exception('Invalid request to add enrol instance to frontpage.');
+        }
+
+        $instance = new stdClass();
+        $instance->enrolid        = $eid;
+        //$instance->courseid       = $course->id;
+
+        $fields = (array)$fields;
+        foreach($fields as $field => $value) {
+            $instance->$field = $value;
+        }
+
+        return $DB->insert_record('enrol_metabulk', $instance);
+    }
+
+    /**
+     * Delete metabulk enrol plugin instance, unenrol all users.
+     * @param object $instance
+     * @return void
+     */
+
+    public function delete_instance($instance) {
+        global $DB;
+
+        $name = $this->get_name();
+        if ($instance->enrol !== $name) {
+            throw new coding_exception('invalid enrol instance!');
+        }
+
+        // First unenrol all users
+        $participants = $DB->get_recordset('user_enrolments', array('enrolid' => $instance->id));
+        foreach ($participants as $participant) {
+            $this->unenrol_user($instance, $participant->userid);
+        }
+        $participants->close();
+
+        // Now clean up all remainders that were not removed correctly
+        $DB->delete_records('groups_members', array('itemid'=>$instance->id, 'component'=>'enrol_'.$name));
+        $DB->delete_records('role_assignments', array('itemid'=>$instance->id, 'component'=>'enrol_'.$name));
+        $DB->delete_records('user_enrolments', array('enrolid'=>$instance->id));
+
+        // finally drop the enrol row
+        $DB->delete_records('enrol', array('id'=>$instance->id));
+
+        // Remove entries of linked courses from enrol_metabulk
+        $linkedcourses = $DB->get_recordset('enrol_metabulk', array('enrolid'=>$instance->id));
+        foreach ($linkedcourses as $c) {
+            $DB->delete_records('enrol_metabulk', array('enrolid' => $instance->id));
+        }
+        $linkedcourses->close();
+
+        // invalidate all enrol caches
+        $context = context_course::instance($instance->courseid);
+        $context->mark_dirty();
+
     }
 
     /**

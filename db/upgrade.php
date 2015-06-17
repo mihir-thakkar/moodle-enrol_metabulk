@@ -27,7 +27,7 @@ function xmldb_enrol_metabulk_upgrade($oldversion) {
     global $CFG, $DB;
     $dbman = $DB->get_manager();
 
-    if ($oldversion < 2015052104) {
+    if ($oldversion < 2015052107) {
 
         // Define table enrol_metabulk to be created.
         $table = new xmldb_table('enrol_metabulk');
@@ -35,7 +35,6 @@ function xmldb_enrol_metabulk_upgrade($oldversion) {
         // Adding fields to table enrol_metabulk.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
         $table->add_field('enrolid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
         $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
         $table->add_field('groupid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
 
@@ -49,8 +48,9 @@ function xmldb_enrol_metabulk_upgrade($oldversion) {
         }
 
         // Metabulk savepoint reached.
-        upgrade_plugin_savepoint(true, 2015052104, 'enrol', 'metabulk');
+        upgrade_plugin_savepoint(true, 2015052107, 'enrol', 'metabulk');
     }
+
 
     return true;
 }
