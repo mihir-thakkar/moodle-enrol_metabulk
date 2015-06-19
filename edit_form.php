@@ -45,10 +45,8 @@ class enrol_metabulk_edit_form extends moodleform {
         // Multi select form element.
         $select = $mform->addElement('select', 'links', get_string('linkbulk', 'enrol_metabulk'), $availablecourses,
             array('size' => 10, 'multiple' => true));
-        $mform->addRule('links', get_string('required'), 'required', null, 'client');
-        $select->setMultiple(true);
+        //$mform->addRule('links', get_string('required'), 'required', null, 'client');
 
-        // Search box.
         $searchgroup = array();
         $searchgroup[] = &$mform->createElement('text', 'links_searchtext');
         $mform->setType('links_searchtext', PARAM_RAW);
@@ -57,6 +55,17 @@ class enrol_metabulk_edit_form extends moodleform {
         $searchgroup[] = &$mform->createElement('submit', 'links_clearbutton', get_string('clear'));
         $mform->registerNoSubmitButton('links_clearbutton');
         $mform->addGroup($searchgroup, 'searchgroup', get_string('search') , array(' '), false);
+
+/*$options = array(
+    'ff0000' => 'Red',
+    '00ff00' => 'Green',
+    '0000ff' => 'Blue'
+);
+$select = $mform->addElement('select', 'colors', 'Color Select', $options);
+// This will select the colour blue.
+$select->setMultiple(true);
+$select->setSelected('0000ff');
+*/
 
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);

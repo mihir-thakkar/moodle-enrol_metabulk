@@ -116,16 +116,10 @@ if ($mform->is_cancelled()) {
 } else if ($data = $mform->get_data()) {
     // Entry already there in enrol table.
     if ($instance->id) { // TODO
-        $enrol->update_instance($instance, array('name' => $data->name));
+        $enrol->update_instance($instance, $data, array('name' => $data->name));
     } else {
-        // Add entry in enrol table
-        $eid = $enrol->add_instance($course, array('name' => $data->name));
-        // Add entries in metabulk table
-        if (!empty($data->links)) {
-            foreach ($data->links as $link) {
-                $enrol->add_metabulk_instance($course, $eid, array('courseid' => $link));
-            }
-        }
+        // Add new instance of enrol_metabulk
+        $enrol->add_metabulk_instance($course, $data, array('name' => $data->name));
         if (!empty($data->submitbuttonnext)) {
             redirect(new moodle_url('/enrol/metabulk/edit.php', array('courseid' => $course->id, 'message' => 'added')));
         }

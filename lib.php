@@ -85,6 +85,10 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
         $icons = array();
 
+        if (has_capability('enrol/manual:config', $context)) {
+            $managelink = new moodle_url("/enrol/metabulk/manage.php", array('enrolid'=>$instance->id));
+            $icons[] = $OUTPUT->action_icon($managelink, new pix_icon('t/enrolusers', get_string('enrolusers', 'enrol_metabulk'), 'core', array('class'=>'iconsmall')));
+        }
         if (has_capability('enrol/metabulk:config', $context)) {
             $editlink = new moodle_url("/enrol/metabulk/edit.php",
                 array('courseid' => $instance->courseid, 'id' => $instance->id));
@@ -97,27 +101,32 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Add new instance of enrol plugin and adds multiple courses in one enrol instance.
-     * @param object $course
+     * @param object $course $data
      * @param array instance fields
      * @return int id of new instance, null if can not be created
      */
-    public function add_metabulk_instance($course, $eid, array $fields = NULL) {
+    public function add_metabulk_instance($course, $data, array $fields = NULL) {
         global $DB;
 
         if ($course->id == SITEID) {
             throw new coding_exception('Invalid request to add enrol instance to frontpage.');
         }
 
-        $instance = new stdClass();
-        $instance->enrolid        = $eid;
-        //$instance->courseid       = $course->id;
-
-        $fields = (array)$fields;
-        foreach($fields as $field => $value) {
-            $instance->$field = $value;
+        // Add instance in enrol table.
+        $eid = $this->add_instance($course, array('name' => $data->name));
+        
+        // Add instances in metabulk table.
+        foreach ($data->links as $link) {
+            if(!empty($data->links)) {
+                $metainstance = new stdClass();
+                $metainstance->enrolid        = $eid;
+                $metainstance->courseid       = $link;
+                $DB->insert_record('enrol_metabulk', $metainstance);
+            } else {
+                break;
+            }            
         }
-
-        return $DB->insert_record('enrol_metabulk', $instance);
+        return $eid;
     }
 
     /**
@@ -134,51 +143,32 @@ class enrol_metabulk_plugin extends enrol_plugin {
             throw new coding_exception('invalid enrol instance!');
         }
 
-        // First unenrol all users
+        // First unenrol all users.
         $participants = $DB->get_recordset('user_enrolments', array('enrolid' => $instance->id));
         foreach ($participants as $participant) {
             $this->unenrol_user($instance, $participant->userid);
         }
         $participants->close();
 
-        // Now clean up all remainders that were not removed correctly
+        // Now clean up all remainders that were not removed correctly.
         $DB->delete_records('groups_members', array('itemid'=>$instance->id, 'component'=>'enrol_'.$name));
         $DB->delete_records('role_assignments', array('itemid'=>$instance->id, 'component'=>'enrol_'.$name));
         $DB->delete_records('user_enrolments', array('enrolid'=>$instance->id));
 
-        // finally drop the enrol row
+        // Finally drop the enrol row.
         $DB->delete_records('enrol', array('id'=>$instance->id));
 
-        // Remove entries of linked courses from enrol_metabulk
+        // Remove entries of linked courses from enrol_metabulk.
         $linkedcourses = $DB->get_recordset('enrol_metabulk', array('enrolid'=>$instance->id));
         foreach ($linkedcourses as $c) {
             $DB->delete_records('enrol_metabulk', array('enrolid' => $instance->id));
         }
         $linkedcourses->close();
 
-        // invalidate all enrol caches
+        // Invalidate all enrol caches.
         $context = context_course::instance($instance->courseid);
         $context->mark_dirty();
 
-    }
-
-    /**
-     * Update an instance of enrol metabulk plugin.
-     * @param object $instance
-     * @param array instance fields
-     * @return int id of updated instance, null if can not be created
-     */
-    public function update_instance($instance, array $fields = null) {
-        global $DB;
-
-        $instance->timemodified   = time();
-
-        $fields = (array)$fields;
-        foreach ($fields as $field => $value) {
-            $instance->$field = $value;
-        }
-
-        return $DB->update_record('enrol', $instance);
     }
 
     /**
@@ -192,5 +182,40 @@ class enrol_metabulk_plugin extends enrol_plugin {
         $availablecourses = get_valid_courses($courses);
 
         return $availablecourses;
+    }
+
+    /**
+     * Update an instance of enrol metabulk plugin.
+     * @param object $instance
+     * @param array instance fields
+     * @return int id of updated instance, null if can not be created
+     */
+    public function update_instance($instance, $data, array $fields = null) { // TODO.
+        global $DB, $course;
+
+        $instance->timemodified   = time();
+
+        $fields = (array)$fields;
+        foreach ($fields as $field => $value) {
+            $instance->$field = $value;
+        }
+
+        // Remove all entries of linked courses from enrol_metabulk.
+        $linkedcourses = $DB->get_recordset('enrol_metabulk', array('enrolid'=>$instance->id));
+        $DB->delete_records('enrol_metabulk', array('enrolid' => $instance->id));
+
+        // Add all new updated entries in the table enrol_metabulk.
+        $eid = $instance->id;
+        foreach ($data->links as $link) {
+            if(!empty($data->links)) {
+                $metainstance = new stdClass();
+                $metainstance->enrolid        = $eid;
+                $metainstance->courseid       = $link;
+                $DB->insert_record('enrol_metabulk', $metainstance);
+            } else {
+                break;
+            }            
+        }
+        return $DB->update_record('enrol', $instance);
     }
 }
