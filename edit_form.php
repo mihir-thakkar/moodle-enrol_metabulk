@@ -42,10 +42,16 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform->addElement('text', 'name', get_string('custominstancename', 'enrol'));
         $mform->setType('name', PARAM_TEXT);
 
+        $linkedcourses = $enrol->get_linked_courses($instance->id, $availablecourses);
+        $unlinkedcourses = $enrol->get_unlinked_courses($instance->id, $availablecourses);
+
         // Multi select form element.
-        $select = $mform->addElement('select', 'links', get_string('linkbulk', 'enrol_metabulk'), $availablecourses,
-            array('size' => 10, 'multiple' => true));
-        //$mform->addRule('links', get_string('required'), 'required', null, 'client');
+        $selectgroup = array();
+        $selectgroup[] = $mform->createElement('static', 'linked', '', get_string('linked', 'enrol_metabulk'));
+        $selectgroup[] = $mform->createElement('select', 'links', '', $linkedcourses, array('size' => 10, 'multiple' => true));
+        $selectgroup[] = $mform->createElement('static', 'unlinked', '', get_string('unlinked', 'enrol_metabulk'));
+        $selectgroup[] = $mform->createElement('select', 'unlinks', '', $unlinkedcourses, array('size' => 10, 'multiple' => true));
+        $mform->addGroup($selectgroup, 'selectgroup', get_string('linkbulk', 'enrol_metabulk'), array(' '), false);
 
         $searchgroup = array();
         $searchgroup[] = &$mform->createElement('text', 'links_searchtext');
@@ -55,17 +61,6 @@ class enrol_metabulk_edit_form extends moodleform {
         $searchgroup[] = &$mform->createElement('submit', 'links_clearbutton', get_string('clear'));
         $mform->registerNoSubmitButton('links_clearbutton');
         $mform->addGroup($searchgroup, 'searchgroup', get_string('search') , array(' '), false);
-
-/*$options = array(
-    'ff0000' => 'Red',
-    '00ff00' => 'Green',
-    '0000ff' => 'Blue'
-);
-$select = $mform->addElement('select', 'colors', 'Color Select', $options);
-// This will select the colour blue.
-$select->setMultiple(true);
-$select->setSelected('0000ff');
-*/
 
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);

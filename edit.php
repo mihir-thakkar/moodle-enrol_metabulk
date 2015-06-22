@@ -57,25 +57,6 @@ if (optional_param('links_clearbutton', 0, PARAM_RAW) && confirm_sesskey()) {
 $enrol = enrol_get_plugin('metabulk');
 $rowlimit = $enrol->get_config('addmultiple_rowlimit', 0);
 
-function get_valid_courses($rs) {
-    global $course;
-    $validcourses = array();
-    foreach ($rs as $c) {
-        if ($c->id == SITEID or $c->id == $course->id or isset($existing[$c->id])) {
-            continue;
-        }
-        $coursecontext = context_course::instance($c->id);
-        if (!$c->visible and !has_capability('moodle/course:viewhiddencourses', $coursecontext)) {
-            continue;
-        }
-        if (!has_capability('enrol/metabulk:selectaslinked', $coursecontext)) {
-            continue;
-        }
-        $validcourses[$c->id] = format_string($c->fullname) . ' ['.$c->shortname.']';
-    }
-    return $validcourses;
-}
-
 $availablecourses = array();
 $existing = $DB->get_records('enrol', array('enrol' => 'metabulk', 'courseid' => $course->id));
 
@@ -83,7 +64,7 @@ if (!empty($searchtext)) {
     $availablecourses = $enrol->search_courses($searchtext, $rowlimit);
 } else {
     $rs = $DB->get_recordset('course', null, 'shortname ASC', 'id, fullname, shortname, visible', 0);
-    $availablecourses = get_valid_courses($rs);
+    $availablecourses = $enrol->get_valid_courses($rs);
     $rs->close();
 }
 
@@ -115,11 +96,12 @@ if ($mform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $mform->get_data()) {
     // Entry already there in enrol table.
-    if ($instance->id) { // TODO
+    if ($instance->id) { // TODO.
         $enrol->update_instance($instance, $data, array('name' => $data->name));
     } else {
-        // Add new instance of enrol_metabulk
+        // Add new instance of enrol_metabulk.
         $enrol->add_metabulk_instance($course, $data, array('name' => $data->name));
+
         if (!empty($data->submitbuttonnext)) {
             redirect(new moodle_url('/enrol/metabulk/edit.php', array('courseid' => $course->id, 'message' => 'added')));
         }

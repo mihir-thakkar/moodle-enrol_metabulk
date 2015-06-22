@@ -50,7 +50,5 @@ function xmldb_enrol_metabulk_upgrade($oldversion) {
         // Metabulk savepoint reached.
         upgrade_plugin_savepoint(true, 2015052107, 'enrol', 'metabulk');
     }
-
-
     return true;
 }
