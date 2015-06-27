@@ -35,7 +35,7 @@ Feature: Enrolments are synchronised with meta courses
     And I follow "Courses"
   
   @runonlythis
-  Scenario: Add bulk meta enrolment instance
+  Scenario: Add bulk meta enrolment instance to a course
     When I follow "Course 3"
     And I add "Bulk meta course link" enrolment method with:
       | Custom instance name  | testname1 |
@@ -43,24 +43,24 @@ Feature: Enrolments are synchronised with meta courses
     Then I should see "testname1" in the "table.generaltable" "css_element"
   
   @runonlythis
-  Scenario: Add multiple bulk meta enrolment instances to a course
+  Scenario: Add metabulk instance and link multiple courses in that instance
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     And I set the field "Add method" to "Bulk meta course link"
     And I press "Go"
     And I set the following fields to these values:
-      | Custom instance name  | testname1 |
-    And I press "Add method and create another"
-    And I set the following fields to these values:
       | Custom instance name  | testname2 |
     And I press "Add method"
+    And I set the following fields to these values:
+      | Link | Course 1, Course 2 |
+    And I press "Link"
+    And the "Unlink" select box should contain "Course 1, Course 2"
     And I navigate to "Enrolled users" node in "Course administration > Users"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
-    Then I should see "testname1" in the "table.generaltable" "css_element"
-    And I should see "testname2" in the "table.generaltable" "css_element"
+    Then I should see "testname2" in the "table.generaltable" "css_element"
 
   @runonlythis
-  Scenario: Edit bulk meta enrolment instances to a course
+  Scenario: Edit bulk meta enrolment instance
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     And I set the field "Add method" to "Bulk meta course link"
@@ -78,3 +78,24 @@ Feature: Enrolments are synchronised with meta courses
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     Then I should see "testname3" in the "table.generaltable" "css_element"
     And I should not see "testname1" in the "table.generaltable" "css_element"
+
+  @runonlythis
+  Scenario: Link and Unlink multiple courses.
+   When I follow "Course 3"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    And I set the field "Add method" to "Bulk meta course link"
+    And I press "Go"
+    And I set the following fields to these values:
+      | Custom instance name  | testname1 |
+    And I press "Add method"
+    When I follow "Course 3"
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    And I click on "Manage" "link" in the "testname1" "table_row"
+    And I set the following fields to these values:
+      | Link | Course 1, Course 2 |
+    And I press "Link"
+    And the "Unlink" select box should contain "Course 1, Course 2"
+    And I set the following fields to these values:
+      | Unlink | Course 1, Course 2 |
+    And I press "Unlink"
+    And the "Link" select box should contain "Course 1, Course 2"

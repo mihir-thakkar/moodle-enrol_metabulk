@@ -42,26 +42,6 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform->addElement('text', 'name', get_string('custominstancename', 'enrol'));
         $mform->setType('name', PARAM_TEXT);
 
-        $linkedcourses = $enrol->get_linked_courses($instance->id, $availablecourses);
-        $unlinkedcourses = $enrol->get_unlinked_courses($instance->id, $availablecourses);
-
-        // Multi select form element.
-        $selectgroup = array();
-        $selectgroup[] = $mform->createElement('static', 'linked', '', get_string('linked', 'enrol_metabulk'));
-        $selectgroup[] = $mform->createElement('select', 'links', '', $linkedcourses, array('size' => 10, 'multiple' => true));
-        $selectgroup[] = $mform->createElement('static', 'unlinked', '', get_string('unlinked', 'enrol_metabulk'));
-        $selectgroup[] = $mform->createElement('select', 'unlinks', '', $unlinkedcourses, array('size' => 10, 'multiple' => true));
-        $mform->addGroup($selectgroup, 'selectgroup', get_string('linkbulk', 'enrol_metabulk'), array(' '), false);
-
-        $searchgroup = array();
-        $searchgroup[] = &$mform->createElement('text', 'links_searchtext');
-        $mform->setType('links_searchtext', PARAM_RAW);
-        $searchgroup[] = &$mform->createElement('submit', 'links_searchbutton', get_string('search'));
-        $mform->registerNoSubmitButton('links_searchbutton');
-        $searchgroup[] = &$mform->createElement('submit', 'links_clearbutton', get_string('clear'));
-        $mform->registerNoSubmitButton('links_clearbutton');
-        $mform->addGroup($searchgroup, 'searchgroup', get_string('search') , array(' '), false);
-
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);
 
@@ -83,8 +63,7 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform = $this->_form;
         $buttonarray = array();
         $buttonarray[0] = $mform->createElement('submit', 'submitbutton', get_string('addinstance', 'enrol'));
-        $buttonarray[1] = $mform->createElement('submit', 'submitbuttonnext', get_string('addinstanceanother', 'enrol'));
-        $buttonarray[2] = $mform->createElement('cancel');
+        $buttonarray[1] = $mform->createElement('cancel');
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->closeHeaderBefore('buttonar');
     }
