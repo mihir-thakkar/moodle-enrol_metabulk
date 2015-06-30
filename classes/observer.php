@@ -1,0 +1,205 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Event observer for bulk meta enrolment plugin.
+ *
+ * @package    enrol_metabulk
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+require_once($CFG->dirroot.'/enrol/metabulk/locallib.php');
+
+/**
+ * Event observer for enrol_metabulk.
+ *
+ * @package    enrol_metabulk
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class enrol_metabulk_observer extends enrol_metabulk_handler {
+
+    /**
+     * Triggered via user_enrolment_created event.
+     *
+     * @param \core\event\user_enrolment_created $event
+     * @return bool true on success.
+     */
+    public static function user_enrolment_created(\core\event\user_enrolment_created $event) {
+        if (!enrol_is_enabled('metabulk')) {
+            // No more enrolments for disabled plugins.
+            return true;
+        }
+
+        if ($event->other['enrol'] === 'metabulk') {
+            // Prevent circular dependencies - we can not sync meta enrolments recursively.
+            return true;
+        }
+
+        self::sync_course_instances($event->courseid, $event->relateduserid);
+        return true;
+    }
+
+    /**
+     * Triggered via user_enrolment_deleted event.
+     *
+     * @param \core\event\user_enrolment_deleted $event
+     * @return bool true on success.
+     */
+    public static function user_enrolment_deleted(\core\event\user_enrolment_deleted $event) {
+        if (!enrol_is_enabled('metabulk')) {
+            // This is slow, let enrol_meta_sync() deal with disabled plugin.
+            return true;
+        }
+
+        if ($event->other['enrol'] === 'metabulk') {
+            // Prevent circular dependencies - we can not sync meta enrolments recursively.
+            return true;
+        }
+
+        self::sync_course_instances($event->courseid, $event->relateduserid);
+
+        return true;
+    }
+
+    /**
+     * Triggered via user_enrolment_updated event.
+     *
+     * @param \core\event\user_enrolment_updated $event
+     * @return bool true on success
+     */
+    public static function user_enrolment_updated(\core\event\user_enrolment_updated $event) {
+        if (!enrol_is_enabled('metabulk')) {
+            // No modifications if plugin disabled.
+            return true;
+        }
+
+        if ($event->other['enrol'] === 'metabulk') {
+            // Prevent circular dependencies - we can not sync meta enrolments recursively.
+            return true;
+        }
+
+        self::sync_course_instances($event->courseid, $event->relateduserid);
+
+        return true;
+    }
+
+    /**
+     * Triggered via role_assigned event.
+     *
+     * @param \core\event\role_assigned $event
+     * @return bool true on success.
+     */
+    public static function role_assigned(\core\event\role_assigned $event) {
+        if (!enrol_is_enabled('metabulk')) {
+            return true;
+        }
+
+        // Prevent circular dependencies - we can not sync meta roles recursively.
+        if ($event->other['component'] === 'enrol_metabulk') {
+            return true;
+        }
+
+        // Only course level roles are interesting.
+        if (!$parentcontext = context::instance_by_id($event->contextid, IGNORE_MISSING)) {
+            return true;
+        }
+        if ($parentcontext->contextlevel != CONTEXT_COURSE) {
+            return true;
+        }
+
+        self::sync_course_instances($parentcontext->instanceid, $event->relateduserid);
+
+        return true;
+    }
+
+    /**
+     * Triggered via role_unassigned event.
+     *
+     * @param \core\event\role_unassigned $event
+     * @return bool true on success
+     */
+    public static function role_unassigned(\core\event\role_unassigned $event) {
+        if (!enrol_is_enabled('metabulk')) {
+            // All roles are removed via cron automatically.
+            return true;
+        }
+
+        // Prevent circular dependencies - we can not sync meta roles recursively.
+        if ($event->other['component'] === 'enrol_metabulk') {
+            return true;
+        }
+
+        // Only course level roles are interesting.
+        if (!$parentcontext = context::instance_by_id($event->contextid, IGNORE_MISSING)) {
+            return true;
+        }
+        if ($parentcontext->contextlevel != CONTEXT_COURSE) {
+            return true;
+        }
+
+        self::sync_course_instances($parentcontext->instanceid, $event->relateduserid);
+
+        return true;
+    }
+
+    /**
+     * Triggered via course_deleted event.
+     *
+     * @param \core\event\course_deleted $event
+     * @return bool true on success
+     */
+    public static function course_deleted(\core\event\course_deleted $event) {
+        global $DB;
+
+        if (!enrol_is_enabled('metabulk')) {
+            // This is slow, let enrol_meta_sync() deal with disabled plugin.
+            return true;
+        }
+
+        // Does anything want to sync with this parent?
+        if (!$enrols = $DB->get_records('enrol_metabulk', array('courseid' => $event->objectid), 'courseid ASC, id ASC')) {
+            return true;
+        }
+
+        $plugin = enrol_get_plugin('metabulk');
+        $unenrolaction = $plugin->get_config('unenrolaction', ENROL_EXT_REMOVED_SUSPENDNOROLES);
+
+        if ($unenrolaction == ENROL_EXT_REMOVED_UNENROL) {
+            // Simple, just delete all the entries of that course from enrol_metabulk,
+            // admins were warned that this is risky setting!
+            $DB->delete_records('enrol_metabulk', array('courseid' => $event->objectid));
+            return true;
+        }
+
+        /*foreach ($enrols as $enrol) {
+
+            if ($unenrolaction == ENROL_EXT_REMOVED_SUSPEND or $unenrolaction == ENROL_EXT_REMOVED_SUSPENDNOROLES) {
+                // This makes all enrolments suspended very quickly.
+                $plugin->update_status($enrol, ENROL_INSTANCE_DISABLED);
+            }
+            if ($unenrolaction == ENROL_EXT_REMOVED_SUSPENDNOROLES) {
+                $context = context_course::instance($enrol->courseid);
+                role_unassign_all(array('contextid'=>$context->id, 'component'=>'enrol_metabulk', 'itemid'=>$enrol->id));
+            }
+        }*/
+
+        return true;
+    }
+}

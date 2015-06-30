@@ -15,21 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'enrol_metabulk', language 'en'.
+ * Scheduled tasks for bulk meta link plugin.
  *
  * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['unlinked'] = 'Unlinked courses: ';
-$string['linked'] = 'Linked courses: ';
-$string['pluginname'] = 'Bulk meta course link';
-$string['metabulk:config'] = 'Configure bulk meta enrol instances';
-$string['metabulk:selectaslinked'] = 'Select course as meta linked';
-$string['linkbulk'] = 'Link';
-$string['unlinkbulk'] = 'Unlink';
-$string['numberofcourses'] = '{$a} Courses';
-$string['manage'] = 'Manage';
-$string['metabulk:unenrol'] = 'Unenrol suspended users';
-$string['nosyncroleids'] = 'Roles that are not synchronised';
+$tasks = array(
+    array(
+        'classname' => 'enrol_metabulk\task\enrol_metabulk_sync',
+        'blocking' => 0,
+        'minute' => '30',
+        'hour' => '17',
+        'day' => '*',
+        'dayofweek' => '0',
+        'month' => '1,7'
+    )
+);

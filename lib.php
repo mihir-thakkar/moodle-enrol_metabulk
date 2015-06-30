@@ -66,6 +66,46 @@ class enrol_metabulk_plugin extends enrol_plugin {
         $context = context_course::instance($instance->courseid);
         return has_capability('enrol/metabulk:config', $context);
     }
+
+    /**
+     * Does this plugin allow manual unenrolment of a specific user?
+     * Yes, but only if user suspended...
+     *
+     * @param stdClass $instance course enrol instance
+     * @param stdClass $ue record from user_enrolments table
+     *
+     * @return bool - true means user with 'enrol/xxx:unenrol' may unenrol this user, 
+     *                false means nobody may touch this user enrolment
+     */
+    public function allow_unenrol_user(stdClass $instance, stdClass $ue) {
+        if ($ue->status == ENROL_USER_SUSPENDED) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets an array of the user enrolment actions
+     *
+     * @param course_enrolment_manager $manager
+     * @param stdClass $ue A user enrolment object
+     * @return array An array of user_enrolment_actions
+     */
+    public function get_user_enrolment_actions(course_enrolment_manager $manager, $ue) {
+        $actions = array();
+        $context = $manager->get_context();
+        $instance = $ue->enrolmentinstance;
+        $params = $manager->get_moodlepage()->url->params();
+        $params['ue'] = $ue->id;
+        if ($this->allow_unenrol_user($instance, $ue) && has_capability('enrol/metabulk:unenrol', $context)) {
+            $url = new moodle_url('/enrol/unenroluser.php', $params);
+            $actions[] = new user_enrolment_action(new pix_icon('t/delete', ''), get_string('unenrol', 'enrol'), $url,
+                array('class' => 'unenrollink', 'rel' => $ue->id));
+        }
+        return $actions;
+    }
+
     /**
      * Returns edit icons for the page with list of instances.
      * @param stdClass $instance
@@ -157,7 +197,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
      * @param object $instance $data
      * @return int id of enrol instance
      */
-    public function add_links($instance, $data) {
+    public function add_links($instance, $data) { // Todo.
         global $DB;
 
         if (!empty($data->unlinks)) {
@@ -181,7 +221,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
      * @param object $instance $data
      * @return int id of enrol instance
      */
-    public function remove_links($instance, $data) {
+    public function remove_links($instance, $data) { // Todo.
         global $DB;
 
         if (!empty($data->links)) {
