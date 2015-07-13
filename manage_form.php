@@ -46,7 +46,7 @@ class enrol_metabulk_manage_form extends moodleform {
         // Multi select form element.
         $selectgroup = array();
         $selectgroup[] = $mform->createElement('submit', 'unlink_courses', get_string('unlinkbulk', 'enrol_metabulk'));
-        if (count($linkedcourses) < COURSE_MAX_COURSES_PER_DROPDOWN) {
+        if (count($linkedcourses) < COURSE_MAX_COURSES_PER_DROPDOWN + 500) {
             $selectgroup[] = $mform->createElement('select', 'links', get_string('unlinkbulk', 'enrol_metabulk'), $linkedcourses,
                 array('size' => 10, 'multiple' => true));
         } else {
@@ -55,7 +55,7 @@ class enrol_metabulk_manage_form extends moodleform {
                 array('size' => 10, 'multiple' => true, 'disabled' => 'disabled'));
         }
         $selectgroup[] = $mform->createElement('submit', 'link_courses', get_string('linkbulk', 'enrol_metabulk'));
-        if (count($unlinkedcourses) < COURSE_MAX_COURSES_PER_DROPDOWN) {
+        if (count($unlinkedcourses) < COURSE_MAX_COURSES_PER_DROPDOWN + 500) {
             $selectgroup[] = $mform->createElement('select', 'unlinks', get_string('linkbulk', 'enrol_metabulk'), $unlinkedcourses,
                 array('size' => 10, 'multiple' => true));
         } else {
@@ -63,7 +63,7 @@ class enrol_metabulk_manage_form extends moodleform {
                 array((string)count($unlinkedcourses) . ' Courses', 'Use search'),
                 array('size' => 10, 'multiple' => true, 'disabled' => 'disabled'));
         }
-        $mform->addGroup($selectgroup, 'selectgroup', get_string('linkbulk', 'enrol_metabulk'), array(' '), false);
+        $mform->addGroup($selectgroup, 'selectgroup', get_string('linkcourses', 'enrol_metabulk'), array(' '), false);
 
         $searchgroup = array();
         $searchgroup[] = &$mform->createElement('text', 'links_searchtext');

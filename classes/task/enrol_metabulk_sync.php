@@ -35,10 +35,14 @@ defined('MOODLE_INTERNAL') || die();
 class enrol_metabulk_sync extends \core\task\scheduled_task {
 
     public function get_name() {
-        // Shown in admin screens.
+        // Shown in admin screen.
         return get_string('pluginname', 'enrol_metabulk');
     }
 
-    public function execute() { // TODO.
+    public function execute() {
+        global $CFG;
+
+        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+        enrol_metabulk_sync();
     }
 }

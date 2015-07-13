@@ -246,7 +246,7 @@ class enrol_metabulk_handler {
  * @param bool $verbose verbose CLI output
  * @return int 0 means ok, 1 means error, 2 means plugin disabled
  */
-function enrol_meta_sync($courseid = NULL, $verbose = false) {
+function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
     global $CFG, $DB;
     require_once("{$CFG->dirroot}/group/lib.php");
 
@@ -283,14 +283,14 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
     $onecourse = $courseid ? "AND e.courseid = :courseid" : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $params['courseid'] = $courseid;
-    $sql = "SELECT pue.userid, e.id AS enrolid, pue.status
-              FROM {user_enrolments} pue
-              JOIN {enrol} pe ON (pe.id = pue.enrolid AND pe.enrol <> 'metabulk' AND pe.enrol $enabled)
-              JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse)
-              JOIN {enrol_metabulk} m ON (m.enrolid = e.id AND m.courseid = pe.courseid)
-              JOIN {user} u ON (u.id = pue.userid AND u.deleted = 0)
-         LEFT JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = pue.userid)
-             WHERE ue.id IS NULL";
+    $sql = "SELECT pue.userid, e.id as enrolid, pue.status
+            FROM {user_enrolments} pue
+            JOIN {enrol} pe ON (pe.id = pue.enrolid AND pe.enrol <> 'metabulk' AND pe.enrol $enabled)
+            JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse)
+            JOIN {enrol_metabulk} m ON (m.enrolid = e.id AND m.courseid = pe.courseid)
+            JOIN {user} u ON (u.id = pue.userid AND u.deleted = 0)
+        LEFT JOIN mdl_user_enrolments ue ON (ue.enrolid = e.id AND ue.userid = pue.userid)
+            WHERE ue.id IS NULL";
 
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
@@ -298,24 +298,27 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
             $instances[$ue->enrolid] = $DB->get_record('enrol', array('id'=>$ue->enrolid));
         }
         $instance = $instances[$ue->enrolid];
-
+        $metainstances = $DB->get_records('enrol_metabulk', array('enrolid' => $instance->id)); 
         if (!$syncall) {
-            // This may be slow if very many users are ignored in sync.
-            $parentcontext = context_course::instance($instance->customint1);
-            list($ignoreroles, $params) = $DB->get_in_or_equal($skiproles, SQL_PARAMS_NAMED, 'ri', false, -1);
-            $params['contextid'] = $parentcontext->id;
-            $params['userid'] = $ue->userid;
-            $select = "contextid = :contextid AND userid = :userid AND component <> 'enrol_metabulk' AND roleid $ignoreroles";
-            if (!$DB->record_exists_select('role_assignments', $select, $params)) {
-                // Bad luck, this user does not have any role we want in parent course.
-                if ($verbose) {
-                    mtrace("  skipping enrolling: $ue->userid ==> $instance->courseid (user without role)");
+            foreach ($metainstances as $metainstance) {
+                // This may be slow if very many users are ignored in sync.
+                //$parentcontext = context_course::instance($instance->customint1);
+                $parentcontext = context_course::instance($metainstance->courseid);
+                list($ignoreroles, $params) = $DB->get_in_or_equal($skiproles, SQL_PARAMS_NAMED, 'ri', false, -1);
+                $params['contextid'] = $parentcontext->id;
+                $params['userid'] = $ue->userid;
+                $select = "contextid = :contextid AND userid = :userid AND component <> 'enrol_metabulk' AND roleid $ignoreroles";
+                if (!$DB->record_exists_select('role_assignments', $select, $params)) {
+                    // Bad luck, this user does not have any role we want in parent course.
+                    if ($verbose) {
+                        mtrace("  skipping enrolling: $ue->userid ==> $instance->courseid (user without role)");
+                    }
+                    continue;
                 }
-                continue;
             }
         }
 
-        $meta->enrol_user($instance, $ue->userid, $ue->status);
+        $meta->enrol_user($instance, $ue->userid, null, 0, 0, $ue->status);
         // Todo: Group support.
         /*if ($instance->customint2) {
             groups_add_member($instance->customint2, $ue->userid, 'enrol_meta', $instance->id);
@@ -333,11 +336,12 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
     $params['courseid'] = $courseid;
     $sql = "SELECT ue.*
               FROM {user_enrolments} ue
-              JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'meta' $onecourse)
+              JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse)
+              JOIN {enrol_metabulk} m ON (m.enrolid = ue.enrolid)
          LEFT JOIN ({user_enrolments} xpue
                       JOIN {enrol} xpe ON (xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
-                      JOIN {enrol_metabulk} m ON (m.enrolid = xpue.enrolid)
-                   ) ON (xpe.courseid = e.customint1 AND xpue.userid = ue.userid)
+                      JOIN {enrol_metabulk} me ON (me.enrolid = xpue.enrolid)
+                   ) ON (xpe.courseid = m.courseid AND xpue.userid = ue.userid)
              WHERE xpue.userid IS NULL";
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
@@ -364,7 +368,7 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
             if ($ue->status != ENROL_USER_SUSPENDED) {
                 $meta->update_user_enrol($instance, $ue->userid, ENROL_USER_SUSPENDED);
                 $context = context_course::instance($instance->courseid);
-                role_unassign_all(array('userid'=>$ue->userid, 'contextid'=>$context->id, 'component'=>'enrol_meta', 'itemid'=>$instance->id));
+                role_unassign_all(array('userid'=>$ue->userid, 'contextid'=>$context->id, 'component'=>'enrol_metabulk', 'itemid'=>$instance->id));
                 if ($verbose) {
                     mtrace("  suspending and removing all roles: $ue->userid ==> $instance->courseid");
                 }
@@ -381,12 +385,13 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
     $params['courseid'] = $courseid;
     $sql = "SELECT ue.userid, ue.enrolid, pue.pstatus
               FROM {user_enrolments} ue
-              JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'meta' $onecourse)
+              JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
+              JOIN {enrol_metabulk} m ON (m.enrolid = ue.enrolid)
               JOIN (SELECT xpue.userid, xpe.courseid, MIN(xpue.status + xpe.status) AS pstatus
                       FROM {user_enrolments} xpue
-                      JOIN {enrol} xpe ON (xpe.id = xpue.enrolid AND xpe.enrol <> 'meta' AND xpe.enrol $enabled)
+                      JOIN {enrol} xpe ON (xpe.id = xpue.enrolid AND xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
                   GROUP BY xpue.userid, xpe.courseid
-                   ) pue ON (pue.courseid = e.customint1 AND pue.userid = ue.userid)
+                   ) pue ON (pue.courseid = m.courseid AND pue.userid = ue.userid)
              WHERE (pue.pstatus = 0 AND ue.status > 0) OR (pue.pstatus > 0 and ue.status = 0)";
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
@@ -394,21 +399,24 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
             $instances[$ue->enrolid] = $DB->get_record('enrol', array('id'=>$ue->enrolid));
         }
         $instance = $instances[$ue->enrolid];
+        $metainstances = $DB->get_records('enrol_metabulk', array('enrolid' => $instance->id));
         $ue->pstatus = ($ue->pstatus == ENROL_USER_ACTIVE) ? ENROL_USER_ACTIVE : ENROL_USER_SUSPENDED;
 
         if ($ue->pstatus == ENROL_USER_ACTIVE and !$syncall and $unenrolaction != ENROL_EXT_REMOVED_UNENROL) {
             // this may be slow if very many users are ignored in sync
-            $parentcontext = context_course::instance($instance->customint1);
-            list($ignoreroles, $params) = $DB->get_in_or_equal($skiproles, SQL_PARAMS_NAMED, 'ri', false, -1);
-            $params['contextid'] = $parentcontext->id;
-            $params['userid'] = $ue->userid;
-            $select = "contextid = :contextid AND userid = :userid AND component <> 'enrol_meta' AND roleid $ignoreroles";
-            if (!$DB->record_exists_select('role_assignments', $select, $params)) {
-                // bad luck, this user does not have any role we want in parent course
-                if ($verbose) {
-                    mtrace("  skipping unsuspending: $ue->userid ==> $instance->courseid (user without role)");
+            foreach ($metainstances as $metainstance) {
+                $parentcontext = context_course::instance($metainstance->courseid);
+                list($ignoreroles, $params) = $DB->get_in_or_equal($skiproles, SQL_PARAMS_NAMED, 'ri', false, -1);
+                $params['contextid'] = $parentcontext->id;
+                $params['userid'] = $ue->userid;
+                $select = "contextid = :contextid AND userid = :userid AND component <> 'enrol_metabulk' AND roleid $ignoreroles";
+                if (!$DB->record_exists_select('role_assignments', $select, $params)) {
+                    // bad luck, this user does not have any role we want in parent course
+                    if ($verbose) {
+                        mtrace("  skipping unsuspending: $ue->userid ==> $instance->courseid (user without role)");
+                    }
+                    continue;
                 }
-                continue;
             }
         }
 
@@ -427,7 +435,7 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
     // now assign all necessary roles
     $enabled = explode(',', $CFG->enrol_plugins_enabled);
     foreach($enabled as $k=>$v) {
-        if ($v === 'meta') {
+        if ($v === 'metabulk') {
             continue; // no meta sync of meta roles
         }
         $enabled[$k] = 'enrol_'.$v;
@@ -440,14 +448,15 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
     $params['courseid'] = $courseid;
     $params['activeuser'] = ENROL_USER_ACTIVE;
     $params['enabledinstance'] = ENROL_INSTANCE_ENABLED;
-    $sql = "SELECT DISTINCT pra.roleid, pra.userid, c.id AS contextid, e.id AS enrolid, e.courseid
+    $sql = "SELECT DISTINCT pra.roleid, pra.userid, c.id AS contextid, m.enrolid AS enrolid, e.courseid
               FROM {role_assignments} pra
               JOIN {user} u ON (u.id = pra.userid AND u.deleted = 0)
               JOIN {context} pc ON (pc.id = pra.contextid AND pc.contextlevel = :coursecontext AND pra.component $enabled)
-              JOIN {enrol} e ON (e.customint1 = pc.instanceid AND e.enrol = 'meta' $onecourse AND e.status = :enabledinstance)
+              JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse AND e.status = :enabledinstance)
+              JOIN {enrol_metabulk} m ON (m.enrolid = e.id AND m.courseid = pc.instanceid)
               JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = u.id AND ue.status = :activeuser)
               JOIN {context} c ON (c.contextlevel = pc.contextlevel AND c.instanceid = e.courseid)
-         LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.userid = pra.userid AND ra.roleid = pra.roleid AND ra.itemid = e.id AND ra.component = 'enrol_meta')
+         LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.userid = pra.userid AND ra.roleid = pra.roleid AND ra.itemid = m.enrolid AND ra.component = 'enrol_metabulk')
              WHERE ra.id IS NULL";
 
     if ($ignored = $meta->get_config('nosyncroleids')) {
@@ -458,7 +467,7 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
 
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ra) {
-        role_assign($ra->roleid, $ra->userid, $ra->contextid, 'enrol_meta', $ra->enrolid);
+        role_assign($ra->roleid, $ra->userid, $ra->contextid, 'enrol_metabulk', $ra->enrolid);
         if ($verbose) {
             mtrace("  assigning role: $ra->userid ==> $ra->courseid as ".$allroles[$ra->roleid]->shortname);
         }
@@ -483,16 +492,17 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
 
     $sql = "SELECT ra.roleid, ra.userid, ra.contextid, ra.itemid, e.courseid
               FROM {role_assignments} ra
-              JOIN {enrol} e ON (e.id = ra.itemid AND ra.component = 'enrol_meta' AND e.enrol = 'meta' $onecourse)
-              JOIN {context} pc ON (pc.instanceid = e.customint1 AND pc.contextlevel = :coursecontext)
-         LEFT JOIN {role_assignments} pra ON (pra.contextid = pc.id AND pra.userid = ra.userid AND pra.roleid = ra.roleid AND pra.component <> 'enrol_meta' $notignored)
+              JOIN {enrol} e ON (e.id = ra.itemid AND ra.component = 'enrol_metabulk' AND e.enrol = 'metabulk' $onecourse)
+              JOIN {enrol_metabulk} m ON (m.enrolid = ra.itemid)
+              JOIN {context} pc ON (pc.instanceid = m.courseid AND pc.contextlevel = :coursecontext)
+         LEFT JOIN {role_assignments} pra ON (pra.contextid = pc.id AND pra.userid = ra.userid AND pra.roleid = ra.roleid AND pra.component <> 'enrol_metabulk' $notignored)
          LEFT JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = ra.userid AND ue.status = :activeuser)
              WHERE pra.id IS NULL OR ue.id IS NULL OR e.status <> :enabledinstance";
 
     if ($unenrolaction != ENROL_EXT_REMOVED_SUSPEND) {
         $rs = $DB->get_recordset_sql($sql, $params);
         foreach($rs as $ra) {
-            role_unassign($ra->roleid, $ra->userid, $ra->contextid, 'enrol_meta', $ra->itemid);
+            role_unassign($ra->roleid, $ra->userid, $ra->contextid, 'enrol_metabulk', $ra->itemid);
             if ($verbose) {
                 mtrace("  unassigning role: $ra->userid ==> $ra->courseid as ".$allroles[$ra->roleid]->shortname);
             }
@@ -510,7 +520,7 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
             $params['courseid'] = $courseid;
             $sql = "SELECT ue.userid, ue.enrolid
                       FROM {user_enrolments} ue
-                      JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'meta' $onecourse)
+                      JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
                       JOIN {context} c ON (e.courseid = c.instanceid AND c.contextlevel = :coursecontext)
                  LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.itemid = e.id AND ra.userid = ue.userid)
                      WHERE ra.id IS NULL";
@@ -536,7 +546,7 @@ function enrol_meta_sync($courseid = NULL, $verbose = false) {
             $params['active'] = ENROL_USER_ACTIVE;
             $sql = "SELECT ue.userid, ue.enrolid
                       FROM {user_enrolments} ue
-                      JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'meta' $onecourse)
+                      JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
                       JOIN {context} c ON (e.courseid = c.instanceid AND c.contextlevel = :coursecontext)
                  LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.itemid = e.id AND ra.userid = ue.userid)
                      WHERE ra.id IS NULL AND ue.status = :active";

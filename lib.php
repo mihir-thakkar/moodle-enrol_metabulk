@@ -198,7 +198,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
      * @return int id of enrol instance
      */
     public function add_links($instance, $data) { // Todo.
-        global $DB;
+        global $DB, $CFG;
 
         if (!empty($data->unlinks)) {
             foreach ($data->unlinks as $unlink) {
@@ -212,7 +212,8 @@ class enrol_metabulk_plugin extends enrol_plugin {
                 }
             }
         }
-
+        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+        enrol_metabulk_sync($instance->courseid);
         return $instance->id;
     }
 
@@ -222,16 +223,36 @@ class enrol_metabulk_plugin extends enrol_plugin {
      * @return int id of enrol instance
      */
     public function remove_links($instance, $data) { // Todo.
-        global $DB;
+        global $DB, $CFG;
 
+        $name = $this->get_name();
         if (!empty($data->links)) {
             foreach ($data->links as $link) {
                 if ($DB->record_exists('enrol_metabulk', array('enrolid' => $instance->id, 'courseid' => $link))) {
+
+                    // First unenrol all users.
+                    $participants = $DB->get_recordset('user_enrolments', array('enrolid' => $instance->id));
+                    foreach ($participants as $participant) {
+                        $this->unenrol_user($instance, $participant->userid);
+                    }
+                    $participants->close();
+
+                    // Now clean up all remainders that were not removed correctly.
+                    $DB->delete_records('groups_members', array('itemid' => $instance->id, 'component' => 'enrol_'.$name));
+                    $DB->delete_records('role_assignments', array('itemid' => $instance->id, 'component' => 'enrol_'.$name));
+                    $DB->delete_records('user_enrolments', array('enrolid' => $instance->id));
+
+                    // Finally drop the enrol metabulk row.
                     $DB->delete_records('enrol_metabulk', array('enrolid' => $instance->id, 'courseid' => $link));
+
+                    // Invalidate all enrol caches.
+                    $context = context_course::instance($instance->courseid);
+                    $context->mark_dirty();
                 }
             }
         }
-
+        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+        enrol_metabulk_sync($instance->courseid);
         return $instance->id;
     }
 
@@ -273,6 +294,22 @@ class enrol_metabulk_plugin extends enrol_plugin {
         $context = context_course::instance($instance->courseid);
         $context->mark_dirty();
 
+    }
+
+    /**
+     * Update instance status
+     *
+     * @param stdClass $instance
+     * @param int $newstatus ENROL_INSTANCE_ENABLED, ENROL_INSTANCE_DISABLED
+     * @return void
+     */
+    public function update_status($instance, $newstatus) {
+        global $CFG;
+
+        parent::update_status($instance, $newstatus);
+
+        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+        enrol_metabulk_sync($instance->courseid);
     }
 
     /**

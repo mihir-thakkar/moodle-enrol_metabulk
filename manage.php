@@ -25,6 +25,7 @@
 require('../../config.php');
 require_once("$CFG->dirroot/enrol/metabulk/manage_form.php");
 require_once("$CFG->dirroot/group/lib.php");
+require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
 
 $courseid = required_param('courseid', PARAM_INT);
 $instanceid = optional_param('id', 0, PARAM_INT);
