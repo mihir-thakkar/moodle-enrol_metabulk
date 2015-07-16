@@ -75,6 +75,29 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         return true;
     }
 
+    protected function get_enroled_users($enrol, $status) {
+        global $DB;
+        return $DB->get_fieldset_sql("SELECT userid "
+                . "FROM {user_enrolments} "
+                . "WHERE enrolid = ? AND status = ? "
+                . "ORDER BY userid", array($enrol->id, $status));
+    }
+
+    protected function get_role_assignments($course) {
+        global $DB;
+        $context = context_course::instance($course->id);
+        $rs = $DB->get_recordset_sql("SELECT userid, roleid "
+                . "FROM {role_assignments} "
+                . "WHERE contextid = ? "
+                . "ORDER BY userid, roleid", array($context->id));
+        $rv = array();
+        foreach ($rs as $record) {
+            $rv[] = (array)$record;
+        }
+        $rs->close();
+        return $rv;
+    }
+
     public function test_sync() {
         global $CFG, $DB;
 
@@ -130,117 +153,230 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->assertEquals(7, $DB->count_records('user_enrolments'));
         $this->assertEquals(6, $DB->count_records('role_assignments'));
 
-        $e1 = $metalplugin->add_instance($course3, array('name' => 'C3 enrolinstance'));
-        $e2 = $metalplugin->add_instance($course4, array('name' => 'C4 enrolinstance'));  
+        // Create Bulk meta course link instance in course3.
+        $e3 = $metalplugin->add_instance($course3, array('name' => 'C3 enrolinstance'));
+        // Create Bulk meta course link instance in course4.
+        $e4 = $metalplugin->add_instance($course4, array('name' => 'C4 enrolinstance'));  
 
-        $enrol1 = $DB->get_record('enrol', array('id'=>$e1, 'name' => 'C3 enrolinstance'));
-        $enrol2 = $DB->get_record('enrol', array('id'=>$e2, 'name' => 'C4 enrolinstance'));
+        $enrol3 = $DB->get_record('enrol', array('id'=>$e3, 'name' => 'C3 enrolinstance'));
+        $enrol4 = $DB->get_record('enrol', array('id'=>$e4, 'name' => 'C4 enrolinstance'));
 
+        // Link course2 to course4
         $data = new stdClass();
         $data->unlinks = array($course2->id);
-        $metalplugin->add_links($enrol2, $data);
-    
-        $this->assertEquals(9, $DB->count_records('user_enrolments'));
-        $this->assertEquals(8, $DB->count_records('role_assignments'));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol2, $student));
-        $this->assertTrue($this->is_meta_enrolled($user2, $enrol2, $teacher));
+        $metalplugin->add_links($enrol4, $data);
 
+        // Users of course2 enrolled in course4, all active, no suspended.
+        $this->assertEquals(array($user1->id, $user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        // Roles of all active users in course4 assigned as per course2.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
+
+        // Link course1 and course2 to course3
         $data = new stdClass();
         $data->unlinks = array($course1->id, $course2->id);
-        $metalplugin->add_links($enrol1, $data);
+        $metalplugin->add_links($enrol3, $data);
 
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(14, $DB->count_records('user_enrolments'));
-        $this->assertEquals(13, $DB->count_records('role_assignments'));  // 9
+        // Users of course1 and course2 enrolled in course3 excluding managers and users with no roles.
+        $this->assertEquals(array($user1->id, $user2->id, $user4->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
+        // Roles of all active users in course3 assigned as per course 1 and course2.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course3));
 
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, $student));
-        $this->assertTrue($this->is_meta_enrolled($user2, $enrol1, $student));
-        $this->assertFalse($this->is_meta_enrolled($user3, $enrol1));
-        $this->assertTrue($this->is_meta_enrolled($user4, $enrol1, $teacher));
-        $this->assertFalse($this->is_meta_enrolled($user5, $enrol1));
-
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, $student));
-        $this->assertTrue($this->is_meta_enrolled($user2, $enrol1, $teacher));  // f
-
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol2, $student));  //t 
-        $this->assertTrue($this->is_meta_enrolled($user2, $enrol2, $teacher));  //t
-
+        // Enable syncall.
         set_config('syncall', 1, 'enrol_metabulk');
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(16, $DB->count_records('user_enrolments')); // 14
-        $this->assertEquals(13, $DB->count_records('role_assignments'));  // 9
+        // Users with no roles are enrolled as suspended and managers enrolled as active.
+        $this->assertEquals(array($user1->id, $user2->id, $user3->id, $user4->id, $user5->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
 
-        $this->assertTrue($this->is_meta_enrolled($user3, $enrol1, false));
-        $this->assertTrue($this->is_meta_enrolled($user5, $enrol1, false));
-
-        $this->assertEquals(16, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
+        // Unenroll user1 from course1 and course2 after disabling the plugin.
         $this->disable_plugin();
         $manplugin->unenrol_user($manual1, $user1->id);
         $manplugin->unenrol_user($manual2, $user1->id);
 
-        $this->assertEquals(14, $DB->count_records('user_enrolments'));
-        $this->assertEquals(11, $DB->count_records('role_assignments'));
-        $this->assertEquals(14, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
+        // No change in user enrolments of course3 and course4 yet.
+        $this->assertEquals(array($user1->id, $user2->id, $user3->id, $user4->id, $user5->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
+        $this->assertEquals(array($user1->id, $user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        // No change in roles assignment of course3 and course4 yet.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course3));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
 
+        // Enable enrol_metabulk plugin and run cron for course4.
         $this->enable_plugin();
-
+        // Set config - unenrol users who are removed from parent course.
         set_config('unenrolaction', ENROL_EXT_REMOVED_SUSPEND, 'enrol_metabulk');
         enrol_metabulk_sync($course4->id, false);
-        $this->assertEquals(14, $DB->count_records('user_enrolments'));
-        $this->assertEquals(11, $DB->count_records('role_assignments'));
-        $this->assertEquals(13, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol2, $student));
-        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol2->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+        
+        // Deleted user (user1) suspended in course4.
+        $this->assertEquals(array($user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array($user1->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        // User is suspended. No changes to role assignments.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
 
+        // User1 is still enrolled in course4 in suspended state but with roles.
+        $this->assertTrue($this->is_meta_enrolled($user1, $enrol4, $student));
+        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol4->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+
+        // Run cron for all courses.
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(14, $DB->count_records('user_enrolments'));
-        $this->assertEquals(11, $DB->count_records('role_assignments'));
-        $this->assertEquals(11, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, $student));
-        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol1->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, $student));
-        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol1->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+        // User1 is suspended in both course3 and course4.
+        $this->assertEquals(array($user2->id, $user3->id, $user4->id, $user5->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array($user1->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
+        $this->assertEquals(array($user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array($user1->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        // User suspended from all courses. No changes to role assignments.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course3));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
 
+        // User1 is still enrolled in course3 and course4 in suspended state but with roles.
+        $this->assertTrue($this->is_meta_enrolled($user1, $enrol3, $student));
+        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol3->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+        $this->assertTrue($this->is_meta_enrolled($user1, $enrol4, $student));
+        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol4->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+
+        // Set config - unenrol users who are removed from parent course and also remove role assignments.
         set_config('unenrolaction', ENROL_EXT_REMOVED_SUSPENDNOROLES, 'enrol_metabulk');
+        // Run cron for course4.
         enrol_metabulk_sync($course4->id, false);
-        $this->assertEquals(14, $DB->count_records('user_enrolments'));
-        $this->assertEquals(10, $DB->count_records('role_assignments'));
-        $this->assertEquals(11, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol2, false));
-        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol2->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+        // User1 enrolled with suspended state in course4.
+        $this->assertEquals(array($user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array($user1->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        // Roles of suspended user (user1) removed from course4.
+        $this->assertEquals(array(
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
 
+        // User1 still enrolled but is suspended and with no roles.
+        $this->assertTrue($this->is_meta_enrolled($user1, $enrol4, false));
+        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol4->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+
+        // Run cron for all courses.
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(14, $DB->count_records('user_enrolments'));
-        $this->assertEquals(8, $DB->count_records('role_assignments'));
-        $this->assertEquals(11, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, false));
-        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol1->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
-        $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, false));
-        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol1->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+        // User1 enrolled with suspended state in course3 and course4.
+        $this->assertEquals(array($user2->id, $user3->id, $user4->id, $user5->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array($user1->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
+        $this->assertEquals(array($user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array($user1->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
 
+        // Roles of suspended user (user1) removed from course3 and course4.
+        $this->assertEquals(array(
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course3));
+        $this->assertEquals(array(
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
+
+        // User1 is still enrolled in course3 and course4 in suspended state and with NO roles.
+        $this->assertTrue($this->is_meta_enrolled($user1, $enrol3, false));
+        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol3->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+        $this->assertTrue($this->is_meta_enrolled($user1, $enrol4, false));
+        $this->assertTrue($DB->record_exists('user_enrolments', array('enrolid'=>$enrol4->id, 'status'=>ENROL_USER_SUSPENDED, 'userid'=>$user1->id)));
+
+        // Set config - remove users who are removed from parent course.
         set_config('unenrolaction', ENROL_EXT_REMOVED_UNENROL, 'enrol_metabulk');
+        // Run cron for course4.
         enrol_meta_sync($course4->id, false);
-        $this->assertEquals(13, $DB->count_records('user_enrolments'));
-        $this->assertEquals(8, $DB->count_records('role_assignments'));
-        $this->assertEquals(11, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
-        $this->assertFalse($this->is_meta_enrolled($user1, $enrol2));
+        // Suspended user (user1) removed from course4.
+        $this->assertEquals(array($user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));  //FAILS
+        // Unassign all roles of suspended users(user1) from course4.
+        $this->assertEquals(array(
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
 
+        // Suspended users removed from course4.
+        $this->assertFalse($this->is_meta_enrolled($user1, $enrol4)); //FAILS
+
+        // Run cron for all courses.
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(11, $DB->count_records('user_enrolments'));
-        $this->assertEquals(8, $DB->count_records('role_assignments'));
-        $this->assertEquals(11, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
-        $this->assertFalse($this->is_meta_enrolled($user1, $enrol1));
-        //$this->assertFalse($this->is_meta_enrolled($user1, $enrol1));
+        // Suspended user (user1) removed from course3 and course4.
+        //$this->assertEquals(array($user2->id, $user3->id, $user4->id, $user5->id),
+                //$this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED)); 
+        $this->assertEquals(array($user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        // Unassign all roles of suspended users(user1) from course3 and course4.
+        $this->assertEquals(array(
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),  // FAILS
+        ), $this->get_role_assignments($course3));
+        $this->assertEquals(array(
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
+
+        // Suspended users removed from course3 as well.
+        $this->assertFalse($this->is_meta_enrolled($user1, $enrol3)); 
 
         delete_course($course3, false);
-        delete_course($course4, false);*/
+        delete_course($course4, false);
 
         // Now try sync triggered by events.
 
         set_config('syncall', 1, 'enrol_metabulk');
 
         $this->getDataGenerator()->enrol_user($user1->id, $course1->id, $student->id);
-        //$this->assertEquals(13, $DB->count_records('user_enrolments'));
+        $this->assertEquals(13, $DB->count_records('user_enrolments'));
         $this->assertEquals(10, $DB->count_records('role_assignments'));
         $this->assertEquals(13, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
         $this->assertTrue($this->is_meta_enrolled($user1, $enrol1, $student));
@@ -446,14 +582,14 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->assertEquals(0, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
 
         delete_course($course3, false);
-        delete_course($course4, false);*/
+        delete_course($course4, false);
 
     }
 
     /**
      * Test user_enrolment_created event.
      */
-    public function test_user_enrolment_created_event() {
+    /*public function test_user_enrolment_created_event() {
         global $DB;
 
         $this->resetAfterTest();
@@ -490,12 +626,12 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $expectedlegacyeventdata->courseid = $course2->id;
         $this->assertEventLegacyData($expectedlegacyeventdata, $event);
         $this->assertEventContextNotUsed($event);
-    }
+    }*/
 
     /**
      * Test user_enrolment_deleted event.
      */
-    public function test_user_enrolment_deleted_event() {
+    /*public function test_user_enrolment_deleted_event() {
         global $DB;
 
         $this->resetAfterTest(true);
@@ -529,12 +665,12 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->assertInstanceOf('\core\event\user_enrolment_deleted', $event);
         $this->assertEquals('user_unenrolled', $event->get_legacy_eventname());
         $this->assertEventContextNotUsed($event);
-    }
+    }*/
 
     /**
      * Test user_enrolment_updated event.
      */
-    public function test_user_enrolment_updated_event() {
+    /*public function test_user_enrolment_updated_event() {
         global $DB;
 
         $this->resetAfterTest(true);
@@ -576,6 +712,6 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->assertEquals($url, $event->get_url());
         $this->assertEventLegacyData($expectedlegacyeventdata, $event);
         $this->assertEventContextNotUsed($event);
-    }
+    }*/
 
 }
