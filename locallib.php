@@ -46,7 +46,7 @@ class enrol_metabulk_handler {
         static $preventrecursion = false;
 
         // Does anything want to sync with this parent?
-        if (!$enrols = $DB->get_records('enrol_metabulk', array('courseid' => $courseid), 'id ASC')) {
+        if (!$enrols = $DB->get_records('enrol_metabulk', array('courseid' => $courseid))) {
             return;
         }
 
@@ -337,31 +337,15 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
     $onecourse = $courseid ? "AND e.courseid = :courseid" : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $params['courseid'] = $courseid;
-    /*$sql = "SELECT ue.*
-              FROM {user_enrolments} ue
-              JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse)
-              JOIN {enrol_metabulk} m ON (m.enrolid = ue.enrolid)
-         LEFT JOIN ({user_enrolments} xpue
-                      JOIN {enrol} xpe ON (xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
-                      JOIN {enrol_metabulk} me ON (me.enrolid = xpue.enrolid)
-                   ) ON (xpe.courseid = m.courseid AND xpue.userid = ue.userid)
-             WHERE xpue.userid IS NULL";*/
-    /*$sql = "SELECT ue.*
-                FROM {user_enrolments} ue
-                JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse)
-                JOIN {enrol_metabulk} m ON (m.enrolid = ue.enrolid)
-            LEFT JOIN ({user_enrolments} xpue
-                    JOIN {enrol} xpe ON (xpe.id = xpue.enrolid AND xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
-                ) ON (xpe.courseid = m.courseid AND xpue.userid = ue.userid)
-                WHERE xpue.userid IS NULL";*/
     $sql = "SELECT ue.*
-              FROM {user_enrolments} ue
-              JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
-              JOIN {enrol_metabulk} m ON (m.enrolid = ue.enrolid)
-              LEFT JOIN ({user_enrolments} xpue
-                      JOIN {enrol} xpe ON (xpe.id = xpue.enrolid AND xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
-                    ) ON (xpe.courseid = m.courseid AND xpue.userid = ue.userid)
-             WHERE xpue.userid IS NULL";
+                FROM {user_enrolments} ue
+                JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
+                WHERE NOT EXISTS (SELECT 1
+                FROM {enrol_metabulk} m
+                JOIN {enrol} xpe ON (xpe.courseid = m.courseid AND xpe.status = 0 AND xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
+                JOIN {user_enrolments} xpue ON xpe.id = xpue.enrolid AND xpue.status = 0
+                WHERE xpue.userid = ue.userid AND m.enrolid = ue.enrolid
+                )";
 
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
