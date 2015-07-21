@@ -840,6 +840,27 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         // Event : unenrol user1 from course1.
         $manplugin->unenrol_user($manual1, $user1->id);
         // user1 should be there in course3.
+        /*$this->assertEquals(array($user1->id, $user2->id, $user3->id, $user4->id, $user5->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course3));
+        $this->assertEquals(array($user1->id, $user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol4, ENROL_USER_SUSPENDED));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));*/
+
+        enrol_metabulk_sync(null,false);
+
         $this->assertEquals(array($user1->id, $user2->id, $user3->id, $user4->id, $user5->id),
                 $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
         $this->assertEquals(array(),
@@ -865,19 +886,21 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
 
         delete_course($course1, false);
 
-        $this->assertEquals(array(),
+        // User1 is still there in course2.
+        $this->assertEquals(array($user1->id),
                 $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
         $this->assertEquals(array(),
                 $this->get_enroled_users($enrol3, ENROL_USER_SUSPENDED));
         $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
         ), $this->get_role_assignments($course3));
 
         // No users left in course3 now after deleting course1.
         enrol_metabulk_sync(null, false);
         // User2 left in course2, course3 and course4.
-        $this->assertEquals(3, $DB->count_records('user_enrolments'));
-        $this->assertEquals(3, $DB->count_records('role_assignments'));
-        $this->assertEquals(3, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
+        $this->assertEquals(6, $DB->count_records('user_enrolments'));
+        $this->assertEquals(6, $DB->count_records('role_assignments'));
+        $this->assertEquals(6, $DB->count_records('user_enrolments', array('status'=>ENROL_USER_ACTIVE)));
 
         // Deleting course2.
         delete_course($course2, false);
