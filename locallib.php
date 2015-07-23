@@ -41,7 +41,7 @@ class enrol_metabulk_handler {
      * @return void
      */
     protected static function sync_course_instances($courseid, $userid) {
-        global $DB;
+        global $DB, $CFG;
 
         static $preventrecursion = false;
 
@@ -58,7 +58,8 @@ class enrol_metabulk_handler {
         try {
             foreach ($enrols as $enrol) {
                 $enrolinstance = $DB->get_record('enrol', array('id' => $enrol->enrolid));
-                self::sync_with_parent_course($enrolinstance, $enrol, $userid);
+                require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+                enrol_metabulk_sync($enrolinstance->courseid, false, $userid);
             }
         } catch (Exception $e) {
             $preventrecursion = false;
@@ -244,9 +245,10 @@ class enrol_metabulk_handler {
  *
  * @param int $courseid one course, empty mean all
  * @param bool $verbose verbose CLI output
+ * @param int $userid one user, empty mean all
  * @return int 0 means ok, 1 means error, 2 means plugin disabled
  */
-function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
+function enrol_metabulk_sync($courseid = NULL, $verbose = false, $userid = NULL) {
     global $CFG, $DB;
     require_once("{$CFG->dirroot}/group/lib.php");
 
@@ -278,11 +280,12 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
 
     $allroles = get_all_roles();
 
-
     // Iterate through all not enrolled yet users.
     $onecourse = $courseid ? "AND e.courseid = :courseid" : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $params['courseid'] = $courseid;
+    $oneuser = $userid ? "AND pue.userid = :userid" : "";
+    $params['userid'] = $userid;
     $sql = "SELECT pue.userid, e.id as enrolid, pue.status
             FROM {user_enrolments} pue
             JOIN {enrol} pe ON (pe.id = pue.enrolid AND pe.enrol <> 'metabulk' AND pe.enrol $enabled)
@@ -290,7 +293,7 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
             JOIN {enrol_metabulk} m ON (m.enrolid = e.id AND m.courseid = pe.courseid)
             JOIN {user} u ON (u.id = pue.userid AND u.deleted = 0)
         LEFT JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = pue.userid)
-            WHERE ue.id IS NULL";
+            WHERE ue.id IS NULL $oneuser";
 
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
@@ -337,6 +340,8 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
     $onecourse = $courseid ? "AND e.courseid = :courseid" : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $params['courseid'] = $courseid;
+    $oneuser = $userid ? "AND ue.userid = :userid" : "";
+    $params['userid'] = $userid;
     $sql = "SELECT ue.*
                 FROM {user_enrolments} ue
                 JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
@@ -345,7 +350,7 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
                 JOIN {enrol} xpe ON (xpe.courseid = m.courseid AND xpe.status = 0 AND xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
                 JOIN {user_enrolments} xpue ON xpe.id = xpue.enrolid AND xpue.status = 0
                 WHERE xpue.userid = ue.userid AND m.enrolid = ue.enrolid
-                )";
+                ) $oneuser";
 
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
@@ -387,6 +392,8 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
     $onecourse = $courseid ? "AND e.courseid = :courseid" : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $params['courseid'] = $courseid;
+    $oneuser = $userid ? "AND ue.userid = :userid" : "";
+    $params['userid'] = $userid;
     $sql = "SELECT ue.userid, ue.enrolid, pue.pstatus
               FROM {user_enrolments} ue
               JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
@@ -396,7 +403,7 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
                       JOIN {enrol} xpe ON (xpe.id = xpue.enrolid AND xpe.enrol <> 'metabulk' AND xpe.enrol $enabled)
                   GROUP BY xpue.userid, xpe.courseid
                    ) pue ON (pue.courseid = m.courseid AND pue.userid = ue.userid)
-             WHERE (pue.pstatus = 0 AND ue.status > 0) OR (pue.pstatus > 0 and ue.status = 0)";
+             WHERE ((pue.pstatus = 0 AND ue.status > 0) OR (pue.pstatus > 0 and ue.status = 0)) $oneuser";
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach($rs as $ue) {
         if (!isset($instances[$ue->enrolid])) {
@@ -455,6 +462,8 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
     $params['courseid'] = $courseid;
     $params['activeuser'] = ENROL_USER_ACTIVE;
     $params['enabledinstance'] = ENROL_INSTANCE_ENABLED;
+    $oneuser = $userid ? "AND u.id = :userid" : "";
+    $params['userid'] = $userid;
     $sql = "SELECT DISTINCT pra.roleid, pra.userid, c.id AS contextid, m.enrolid AS enrolid, e.courseid
               FROM {role_assignments} pra
               JOIN {user} u ON (u.id = pra.userid AND u.deleted = 0)
@@ -464,7 +473,7 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
               JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = u.id AND ue.status = :activeuser)
               JOIN {context} c ON (c.contextlevel = pc.contextlevel AND c.instanceid = e.courseid)
          LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.userid = pra.userid AND ra.roleid = pra.roleid AND ra.itemid = m.enrolid AND ra.component = 'enrol_metabulk')
-             WHERE ra.id IS NULL";
+             WHERE ra.id IS NULL $oneuser";
 
     if ($ignored = $meta->get_config('nosyncroleids')) {
         list($notignored, $xparams) = $DB->get_in_or_equal(explode(',', $ignored), SQL_PARAMS_NAMED, 'ig', false);
@@ -487,6 +496,8 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
     $params = array();
     $params['coursecontext'] = CONTEXT_COURSE;
     $params['courseid'] = $courseid;
+    $oneuser = $userid ? "WHERE ra.userid = :userid" : "";
+    $params['userid'] = $userid;
     $params['activeuser'] = ENROL_USER_ACTIVE;
     $params['enabledinstance'] = ENROL_INSTANCE_ENABLED;
     if ($ignored = $meta->get_config('nosyncroleids')) {
@@ -504,6 +515,7 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
               JOIN {context} pc ON (pc.instanceid = m.courseid AND pc.contextlevel = :coursecontext)
          LEFT JOIN {role_assignments} pra ON (pra.contextid = pc.id AND pra.userid = ra.userid AND pra.roleid = ra.roleid AND pra.component <> 'enrol_metabulk' $notignored)
          LEFT JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = ra.userid AND ue.status = :activeuser)
+             $oneuser
              GROUP BY ra.roleid, ra.userid, ra.contextid, ra.itemid, e.courseid
              HAVING MAX(pra.id) IS NULL OR MAX(ue.id) IS NULL OR MIN(e.status) > :enabledinstance";
             // WHERE pra.id IS NULL OR ue.id IS NULL OR e.status <> :enabledinstance  --last line replaced
@@ -526,12 +538,14 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
             $params = array();
             $params['coursecontext'] = CONTEXT_COURSE;
             $params['courseid'] = $courseid;
+            $oneuser = $userid ? "AND ue.userid = :userid" : "";
+            $params['userid'] = $userid;
             $sql = "SELECT ue.userid, ue.enrolid
                       FROM {user_enrolments} ue
                       JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
                       JOIN {context} c ON (e.courseid = c.instanceid AND c.contextlevel = :coursecontext)
                  LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.itemid = e.id AND ra.userid = ue.userid)
-                     WHERE ra.id IS NULL";
+                     WHERE ra.id IS NULL $oneuser";
             $ues = $DB->get_recordset_sql($sql, $params);
             foreach($ues as $ue) {
                 if (!isset($instances[$ue->enrolid])) {
@@ -552,12 +566,14 @@ function enrol_metabulk_sync($courseid = NULL, $verbose = false) {
             $params['coursecontext'] = CONTEXT_COURSE;
             $params['courseid'] = $courseid;
             $params['active'] = ENROL_USER_ACTIVE;
+            $oneuser = $userid ? "AND ue.userid = :userid" : "";
+            $params['userid'] = $userid;
             $sql = "SELECT ue.userid, ue.enrolid
                       FROM {user_enrolments} ue
                       JOIN {enrol} e ON (e.id = ue.enrolid AND e.enrol = 'metabulk' $onecourse)
                       JOIN {context} c ON (e.courseid = c.instanceid AND c.contextlevel = :coursecontext)
                  LEFT JOIN {role_assignments} ra ON (ra.contextid = c.id AND ra.itemid = e.id AND ra.userid = ue.userid)
-                     WHERE ra.id IS NULL AND ue.status = :active";
+                     WHERE ra.id IS NULL AND ue.status = :active $oneuser";
             $ues = $DB->get_recordset_sql($sql, $params);
             foreach($ues as $ue) {
                 if (!isset($instances[$ue->enrolid])) {
