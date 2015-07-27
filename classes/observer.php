@@ -33,7 +33,7 @@ require_once($CFG->dirroot.'/enrol/metabulk/locallib.php');
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class enrol_metabulk_observer extends enrol_metabulk_handler {
+class enrol_metabulk_observer {
 
     /**
      * Triggered via user_enrolment_created event.
@@ -187,8 +187,8 @@ class enrol_metabulk_observer extends enrol_metabulk_handler {
             $DB->delete_records('enrol_metabulk', array('courseid' => $event->objectid));
             return true;
         }
-
-        /*foreach ($enrols as $enrol) {
+        // TODO.
+        foreach ($enrols as $enrol) {
 
             if ($unenrolaction == ENROL_EXT_REMOVED_SUSPEND or $unenrolaction == ENROL_EXT_REMOVED_SUSPENDNOROLES) {
                 // This makes all enrolments suspended very quickly.
@@ -196,10 +196,49 @@ class enrol_metabulk_observer extends enrol_metabulk_handler {
             }
             if ($unenrolaction == ENROL_EXT_REMOVED_SUSPENDNOROLES) {
                 $context = context_course::instance($enrol->courseid);
-                role_unassign_all(array('contextid'=>$context->id, 'component'=>'enrol_metabulk', 'itemid'=>$enrol->id));
+                role_unassign_all(array('contextid' => $context->id, 'component' => 'enrol_metabulk', 'itemid' => $enrol->id));
             }
-        }*/
+        }
 
         return true;
     }
+
+    /**
+     * Synchronise meta enrolments of this user in this course
+     * @static
+     * @param int $courseid
+     * @param int $userid
+     * @return void
+     */
+    protected static function sync_course_instances($courseid, $userid) {
+        global $DB, $CFG;
+
+        static $preventrecursion = false;
+
+        if ($preventrecursion) {
+            return;
+        }
+
+        // Does anything want to sync with this parent?
+        if (!$enrols = $DB->get_records('enrol_metabulk', array('courseid' => $courseid))) {
+            return;
+        }
+
+        $preventrecursion = true;
+        try {
+            $courses = array();
+            foreach ($enrols as $enrol) {
+                $enrolinstance = $DB->get_record('enrol', array('id' => $enrol->enrolid));
+                $courses[] = $enrolinstance->courseid;
+            }
+            require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+            enrol_metabulk_sync($courses, false);
+        } catch (Exception $e) {
+            $preventrecursion = false;
+            throw $e;
+        }
+
+        $preventrecursion = false;
+    }
+
 }

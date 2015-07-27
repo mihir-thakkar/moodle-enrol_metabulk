@@ -26,10 +26,10 @@ $tasks = array(
     array(
         'classname' => 'enrol_metabulk\task\enrol_metabulk_sync',
         'blocking' => 0,
-        'minute' => '30',
-        'hour' => '17',
+        'minute' => 'R',
+        'hour' => '*',
         'day' => '*',
-        'dayofweek' => '0',
-        'month' => '1,7'
+        'dayofweek' => '*',
+        'month' => '*'
     )
 );
