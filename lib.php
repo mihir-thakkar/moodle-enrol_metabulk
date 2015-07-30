@@ -23,6 +23,10 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+/**
+ * ENROL_METABULK_CREATE_GROUP constant for automatically creating a group for a meta course.
+ */
+define('ENROL_METABULK_CREATE_GROUP', -1);
 
 /**
  * Meta course bulk enrolment plugin.
@@ -230,7 +234,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
             foreach ($data->links as $link) {
                 if ($DB->record_exists('enrol_metabulk', array('enrolid' => $instance->id, 'courseid' => $link))) {
 
-                    // First unenrol all users.
+                    /*// First unenrol all users.
                     $participants = $DB->get_recordset('user_enrolments', array('enrolid' => $instance->id));
                     foreach ($participants as $participant) {
                         $this->unenrol_user($instance, $participant->userid);
@@ -247,7 +251,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
                     // Invalidate all enrol caches.
                     $context = context_course::instance($instance->courseid);
-                    $context->mark_dirty();
+                    $context->mark_dirty();*/
                 }
             }
         }

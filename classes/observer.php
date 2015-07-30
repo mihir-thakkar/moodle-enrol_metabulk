@@ -187,18 +187,13 @@ class enrol_metabulk_observer {
             $DB->delete_records('enrol_metabulk', array('courseid' => $event->objectid));
             return true;
         }
-        // TODO.
-        foreach ($enrols as $enrol) {
 
-            if ($unenrolaction == ENROL_EXT_REMOVED_SUSPEND or $unenrolaction == ENROL_EXT_REMOVED_SUSPENDNOROLES) {
-                // This makes all enrolments suspended very quickly.
-                $plugin->update_status($enrol, ENROL_INSTANCE_DISABLED);
-            }
-            if ($unenrolaction == ENROL_EXT_REMOVED_SUSPENDNOROLES) {
-                $context = context_course::instance($enrol->courseid);
-                role_unassign_all(array('contextid' => $context->id, 'component' => 'enrol_metabulk', 'itemid' => $enrol->id));
-            }
-        }
+        $courses = $DB->get_fieldset_sql('SELECT DISTINCT e.courseid
+                FROM {enrol} e 
+                JOIN {enrol_metabulk} m ON (m.enrolid = e.id) 
+                WHERE m.courseid = ?', array($event->objectid));
+        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+        enrol_metabulk_sync($courses, false);
 
         return true;
     }
@@ -224,13 +219,19 @@ class enrol_metabulk_observer {
             return;
         }
 
+        $courses = $DB->get_fieldset_sql('SELECT DISTINCT e.courseid
+                FROM {enrol} e 
+                JOIN {enrol_metabulk} m ON (m.enrolid = e.id) 
+                WHERE m.courseid = ?', array($courseid));
+        if (!$courses) {   
+            return;
+        }
+
         $preventrecursion = true;
         try {
-            $courses = array();
-            foreach ($enrols as $enrol) {
-                $enrolinstance = $DB->get_record('enrol', array('id' => $enrol->enrolid));
-                $courses[] = $enrolinstance->courseid;
-            }
+           
+            //$enrolinstance = $DB->get_record('enrol', array('id' => $enrol->enrolid));
+            //$courses[] = $enrol->courseid;
             require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
             enrol_metabulk_sync($courses, false);
         } catch (Exception $e) {

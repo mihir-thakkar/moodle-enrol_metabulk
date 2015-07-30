@@ -22,6 +22,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['addgroup'] = 'Add to group';
+$string['creategroup'] = 'Create new group';
+$string['defaultgroupnametext'] = '{$a->name} {$a->increment}';
 $string['unlinked'] = 'Unlinked courses: ';
 $string['linked'] = 'Linked courses: ';
 $string['pluginname'] = 'Bulk meta course link';

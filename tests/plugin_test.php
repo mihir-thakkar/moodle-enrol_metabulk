@@ -118,15 +118,19 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $user3 = $this->getDataGenerator()->create_user();
         $user4 = $this->getDataGenerator()->create_user();
         $user5 = $this->getDataGenerator()->create_user();
+        $user6 = $this->getDataGenerator()->create_user();
+        $user7 = $this->getDataGenerator()->create_user();
 
         $course1 = $this->getDataGenerator()->create_course();
         $course2 = $this->getDataGenerator()->create_course();
         $course3 = $this->getDataGenerator()->create_course();
         $course4 = $this->getDataGenerator()->create_course();
+        $course5 = $this->getDataGenerator()->create_course();
         $manual1 = $DB->get_record('enrol', array('courseid' => $course1->id, 'enrol' => 'manual'), '*', MUST_EXIST);
         $manual2 = $DB->get_record('enrol', array('courseid' => $course2->id, 'enrol' => 'manual'), '*', MUST_EXIST);
         $manual3 = $DB->get_record('enrol', array('courseid' => $course3->id, 'enrol' => 'manual'), '*', MUST_EXIST);
         $manual4 = $DB->get_record('enrol', array('courseid' => $course4->id, 'enrol' => 'manual'), '*', MUST_EXIST);
+        $manual5 = $DB->get_record('enrol', array('courseid' => $course5->id, 'enrol' => 'manual'), '*', MUST_EXIST);
 
         $student = $DB->get_record('role', array('shortname' => 'student'));
         $teacher = $DB->get_record('role', array('shortname' => 'teacher'));
@@ -143,8 +147,15 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->getDataGenerator()->enrol_user($user1->id, $course2->id, $student->id);
         $this->getDataGenerator()->enrol_user($user2->id, $course2->id, $teacher->id);
 
-        $this->assertEquals(7, $DB->count_records('user_enrolments'));
-        $this->assertEquals(6, $DB->count_records('role_assignments'));
+        $this->getDataGenerator()->enrol_user($user5->id, $course3->id, $student->id);
+        $this->getDataGenerator()->enrol_user($user6->id, $course3->id, $teacher->id);
+        $this->getDataGenerator()->enrol_user($user7->id, $course3->id, $manager->id);
+
+        $this->getDataGenerator()->enrol_user($user1->id, $course5->id, $teacher->id);
+        $this->getDataGenerator()->enrol_user($user6->id, $course5->id, $student->id);
+
+        $this->assertEquals(12, $DB->count_records('user_enrolments'));
+        $this->assertEquals(11, $DB->count_records('role_assignments'));
 
         set_config('syncall', 0, 'enrol_metabulk');
         set_config('nosyncroleids', $manager->id, 'enrol_metabulk');
@@ -152,21 +163,24 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         require_once($CFG->dirroot.'/enrol/metabulk/locallib.php');
 
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(7, $DB->count_records('user_enrolments'));
-        $this->assertEquals(6, $DB->count_records('role_assignments'));
+        $this->assertEquals(12, $DB->count_records('user_enrolments'));
+        $this->assertEquals(11, $DB->count_records('role_assignments'));
 
         $this->enable_plugin();
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(7, $DB->count_records('user_enrolments'));
-        $this->assertEquals(6, $DB->count_records('role_assignments'));
+        $this->assertEquals(12, $DB->count_records('user_enrolments'));
+        $this->assertEquals(11, $DB->count_records('role_assignments'));
 
         // Create Bulk meta course link instance in course3.
         $e3 = $metalplugin->add_instance($course3, array('name' => 'C3 enrolinstance'));
         // Create Bulk meta course link instance in course4.
         $e4 = $metalplugin->add_instance($course4, array('name' => 'C4 enrolinstance'));
+        // Create Bulk meta course link instance in course5.
+        $e5 = $metalplugin->add_instance($course5, array('name' => 'C5 enrolinstance'));
 
         $enrol3 = $DB->get_record('enrol', array('id' => $e3, 'name' => 'C3 enrolinstance'));
         $enrol4 = $DB->get_record('enrol', array('id' => $e4, 'name' => 'C4 enrolinstance'));
+        $enrol5 = $DB->get_record('enrol', array('id' => $e5, 'name' => 'C5 enrolinstance'));
 
         // Link course2 to course4.
         $data = new stdClass();
@@ -201,6 +215,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Enable syncall.
@@ -232,6 +249,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array(
             array('userid' => $user1->id, 'roleid' => $student->id),
@@ -277,6 +297,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array(
             array('userid' => $user1->id, 'roleid' => $student->id),
@@ -327,6 +350,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array(
             array('userid' => $user2->id, 'roleid' => $teacher->id),
@@ -373,6 +399,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array(
             array('userid' => $user2->id, 'roleid' => $teacher->id),
@@ -397,6 +426,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Run cron.
@@ -413,6 +445,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : unenrol user1 from course1. Config : syncall = 1.
@@ -428,6 +463,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Run cron.
@@ -443,6 +481,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : enrol user1 in course1 with no roles. Config : syncall = 1.
@@ -457,6 +498,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Run cron.
@@ -471,6 +515,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : unenrol user1 from course1. Config : syncall = 1.
@@ -483,6 +530,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Run cron.
@@ -495,6 +545,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Config 'syncall' disabled now.
@@ -510,6 +563,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : enrol user1 in course1 with no roles. Config : syncall = 0.
@@ -523,6 +579,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Run cron.
@@ -536,6 +595,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertFalse($this->is_meta_enrolled($user1, $enrol3, $student));
 
@@ -552,6 +614,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Run cron.
@@ -566,6 +631,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : Unassign teacher role to user1 in course1. Config : syncall = 0.
@@ -580,6 +648,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -593,6 +664,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : unenrol user1 from course1. Config : syncall = 0.
@@ -605,6 +679,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Enable syncall. Config : syncall = 1.
@@ -621,6 +698,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : enrol user1 in course1 as student. Config : syncall = 1.
@@ -635,6 +715,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -649,6 +732,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : update user1 status to ENROL_USER_SUSPENDED in course1. Config : syncall = 1.
@@ -663,6 +749,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -676,6 +765,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertTrue($this->is_meta_enrolled($user1, $enrol3, $student));
 
@@ -691,6 +783,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -704,6 +799,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertTrue($this->is_meta_enrolled($user1, $enrol3, $student));
 
@@ -718,6 +816,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -731,6 +832,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertTrue($this->is_meta_enrolled($user1, $enrol3, $student));
 
@@ -747,6 +851,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : enrol user1 in course1 as student. Config : syncall = 1.
@@ -760,6 +867,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -774,6 +884,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : unenrol user1 from course1.
@@ -787,6 +900,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -799,6 +915,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : enrol user in course1 as student. Config : syncall = 1.
@@ -812,6 +931,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         enrol_metabulk_sync(null, false);
@@ -825,6 +947,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
         // Event : enrol user1 is course2.
@@ -838,6 +963,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array($user1->id, $user2->id),
                 $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
@@ -860,6 +988,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array($user1->id, $user2->id),
                 $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
@@ -881,6 +1012,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
             array('userid' => $user2->id, 'roleid' => $student->id),
             array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
         $this->assertEquals(array($user1->id, $user2->id),
                 $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
@@ -891,11 +1025,74 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
             array('userid' => $user2->id, 'roleid' => $teacher->id),
         ), $this->get_role_assignments($course4));
 
+        // Event - create mutual link between two courses.
+        // Let's check course5. No enrolments yet!
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol5, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(),
+                $this->get_enroled_users($enrol5, ENROL_USER_SUSPENDED));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $teacher->id),
+            array('userid' => $user6->id, 'roleid' => $student->id),
+        ), $this->get_role_assignments($course5));
+
+        // Link course3 to course5.
+        $data = new stdClass();
+        $data->unlinks = array($course3->id);
+        $metalplugin->add_links($enrol5, $data);
+
+        // Link course5 to course3.
+        $data = new stdClass();
+        $data->unlinks = array($course5->id);
+        $metalplugin->add_links($enrol3, $data);
+
+        $this->assertEquals(array($user1->id, $user2->id, $user3->id, $user4->id, $user5->id, $user6->id),
+                $this->get_enroled_users($enrol3, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $teacher->id),
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user2->id, 'roleid' => $student->id),
+            array('userid' => $user4->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user6->id, 'roleid' => $student->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
+        ), $this->get_role_assignments($course3));
+        $this->assertEquals(array($user1->id, $user2->id),
+                $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $student->id),
+            array('userid' => $user2->id, 'roleid' => $teacher->id),
+        ), $this->get_role_assignments($course4));
+        $this->assertEquals(array($user5->id, $user6->id, $user7->id),
+                $this->get_enroled_users($enrol5, ENROL_USER_ACTIVE));
+        // No roles for managers.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user6->id, 'roleid' => $student->id),
+        ), $this->get_role_assignments($course5));
+
+        enrol_metabulk_sync(null, false);
+
+        $this->assertEquals(array($user5->id, $user6->id, $user7->id),
+                $this->get_enroled_users($enrol5, ENROL_USER_ACTIVE));
+        // no roles for managers.
+        $this->assertEquals(array(
+            array('userid' => $user1->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user6->id, 'roleid' => $student->id),
+        ), $this->get_role_assignments($course5));
+
         // Unenrolaction is to unenrol users which are externally removed users.
         set_config('unenrolaction', ENROL_EXT_REMOVED_UNENROL, 'enrol_metabulk');
         enrol_metabulk_sync(null, false);
 
         delete_course($course1, false);
+        delete_course($course5, false);
 
         // Both user1, user2 still there in course2.
         $this->assertEquals(array($user1->id, $user2->id),
@@ -905,25 +1102,28 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->assertEquals(array(
             array('userid' => $user1->id, 'roleid' => $student->id),
             array('userid' => $user2->id, 'roleid' => $teacher->id),
+            array('userid' => $user5->id, 'roleid' => $student->id),
+            array('userid' => $user6->id, 'roleid' => $teacher->id),
+            array('userid' => $user7->id, 'roleid' => $manager->id),
         ), $this->get_role_assignments($course3));
 
-        // No users left in course3 now after deleting course1.
+        // Only 3 manually enrolled users left in course3 now after deleting course1.
         enrol_metabulk_sync(null, false);
-        // User2 left in course2, course3 and course4.
-        $this->assertEquals(6, $DB->count_records('user_enrolments'));
-        $this->assertEquals(6, $DB->count_records('role_assignments'));
-        $this->assertEquals(6, $DB->count_records('user_enrolments', array('status' => ENROL_USER_ACTIVE)));
+
+        $this->assertEquals(9, $DB->count_records('user_enrolments'));
+        $this->assertEquals(9, $DB->count_records('role_assignments'));
+        $this->assertEquals(9, $DB->count_records('user_enrolments', array('status' => ENROL_USER_ACTIVE)));
 
         // Deleting course2.
         delete_course($course2, false);
         // No users left now.
-        $this->assertEquals(0, $DB->count_records('user_enrolments'));
-        $this->assertEquals(0, $DB->count_records('role_assignments'));
-        $this->assertEquals(0, $DB->count_records('user_enrolments', array('status' => ENROL_USER_ACTIVE)));
+        $this->assertEquals(3, $DB->count_records('user_enrolments'));
+        $this->assertEquals(3, $DB->count_records('role_assignments'));
+        $this->assertEquals(3, $DB->count_records('user_enrolments', array('status' => ENROL_USER_ACTIVE)));
         enrol_metabulk_sync(null, false);
-        $this->assertEquals(0, $DB->count_records('user_enrolments'));
-        $this->assertEquals(0, $DB->count_records('role_assignments'));
-        $this->assertEquals(0, $DB->count_records('user_enrolments', array('status' => ENROL_USER_ACTIVE)));
+        $this->assertEquals(3, $DB->count_records('user_enrolments'));
+        $this->assertEquals(3, $DB->count_records('role_assignments'));
+        $this->assertEquals(3, $DB->count_records('user_enrolments', array('status' => ENROL_USER_ACTIVE)));
 
         delete_course($course3, false);
         delete_course($course4, false);
@@ -1058,4 +1258,17 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->assertEventContextNotUsed($event);
     }
 
+    /**
+     * Test course_deleted event.
+     */
+    public function test_course_deleted_event() { // TODO
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        $metalplugin = enrol_get_plugin('metabulk');
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
+
+    }
 }

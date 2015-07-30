@@ -25,6 +25,7 @@
 require('../../config.php');
 require_once("$CFG->dirroot/enrol/metabulk/edit_form.php");
 require_once("$CFG->dirroot/group/lib.php");
+require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
 
 $courseid = required_param('courseid', PARAM_INT);
 $instanceid = optional_param('id', 0, PARAM_INT);
@@ -79,12 +80,17 @@ $mform = new enrol_metabulk_edit_form(null, array($instance, $course, $available
 if ($mform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $mform->get_data()) {
+    if (!empty($data->customint2) && $data->customint2 == ENROL_METABULK_CREATE_GROUP) {
+         $data->customint2 = enrol_metabulk_create_new_group($course->id, $data->name);
+    }
     // Entry already there in enrol table.
     if ($instance->id) {
-        $DB->update_record('enrol', array('id' => $instance->id, 'name' => $data->name));
+        $DB->update_record('enrol', array('id' => $instance->id, 'name' => $data->name, 'customint2' => $data->customint2));
+        enrol_metabulk_sync(array($course->id));
     } else {
         // Add new instance of enrol_metabulk.
         $eid = $enrol->add_instance($course, array('name' => $data->name));
+        enrol_metabulk_sync(array($course->id));
         if (!empty($data->submitbutton)) {
             redirect(new moodle_url('/enrol/metabulk/manage.php', array('courseid' => $courseid, 'id' => $eid)));
         }

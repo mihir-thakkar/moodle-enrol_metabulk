@@ -110,7 +110,9 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
         }
 
         $meta->enrol_user($instance, $ue->userid, null, 0, 0, $ue->status);
-
+        if ($instance->customint2) {
+            groups_add_member($instance->customint2, $ue->userid, 'enrol_metabulk', $instance->id);
+        }
         if ($verbose) {
             mtrace("  enrolling: $ue->userid ==> $instance->courseid");
         }
@@ -381,9 +383,52 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
         }
     }
 
+    // Finally sync groups.
+    $affectedusers = groups_sync_with_enrolment('metabulk', $courseid);
+    if ($verbose) {
+        foreach ($affectedusers['removed'] as $gm) {
+            mtrace("removing user from group: $gm->userid ==> $gm->courseid - $gm->groupname", 1);
+        }
+        foreach ($affectedusers['added'] as $ue) {
+            mtrace("adding user to group: $ue->userid ==> $ue->courseid - $ue->groupname", 1);
+        }
+    }
+
     if ($verbose) {
         mtrace('...user enrolment synchronisation finished.');
     }
 
     return 0;
+}
+
+/**
+ * Create a new group with the enrol instance's name.
+ *
+ * @param int $courseid
+ * @param int $linkedcourseid
+ * @return int $groupid Group ID for this cohort.
+ */
+function enrol_metabulk_create_new_group($courseid, $coursename) {
+    global $DB, $CFG;
+
+    require_once($CFG->dirroot.'/group/lib.php');
+
+    //$coursename = $DB->get_field('enrol', 'name', array('courseid' => $courseid), MUST_EXIST);
+    $a = new stdClass();
+    $a->name = $coursename;
+    $a->increment = '';
+    $inc = 1;
+    $groupname = trim(get_string('defaultgroupnametext', 'enrol_metabulk', $a));
+    // Check to see if the group name already exists in this course. Add an incremented number if it does.
+    while ($DB->record_exists('groups', array('name' => $groupname, 'courseid' => $courseid))) {
+        $a->increment = '(' . ($inc++) . ')';
+        $groupname = trim(get_string('defaultgroupnametext', 'enrol_metabulk', $a));
+    }
+    // Create a new group for the course meta sync.
+    $groupdata = new stdClass();
+    $groupdata->courseid = $courseid;
+    $groupdata->name = $groupname;
+    $groupid = groups_create_group($groupdata);
+
+    return $groupid;
 }

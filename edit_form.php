@@ -38,9 +38,19 @@ class enrol_metabulk_edit_form extends moodleform {
         $coursecontext = context_course::instance($course->id);
         $enrol = enrol_get_plugin('metabulk');
 
+        $groups = array(0 => get_string('none'));
+        if (has_capability('moodle/course:managegroups', context_course::instance($course->id))) {
+            $groups[ENROL_METABULK_CREATE_GROUP] = get_string('creategroup', 'enrol_metabulk');
+        }
+        foreach (groups_get_all_groups($course->id) as $group) {
+            $groups[$group->id] = format_string($group->name, true, array('context' => context_course::instance($course->id)));
+        }
+
         $mform->addElement('header' , 'general' , get_string('pluginname' , 'enrol_metabulk'));
         $mform->addElement('text', 'name', get_string('custominstancename', 'enrol'));
         $mform->setType('name', PARAM_TEXT);
+
+        $mform->addElement('select', 'customint2', get_string('addgroup', 'enrol_metabulk'), $groups);
 
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);
