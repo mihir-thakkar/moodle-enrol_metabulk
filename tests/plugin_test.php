@@ -262,7 +262,7 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $this->enable_plugin();
         // Set config - unenrol users who are removed from parent course.
         set_config('unenrolaction', ENROL_EXT_REMOVED_SUSPEND, 'enrol_metabulk');
-        enrol_metabulk_sync($course4->id, false);
+        enrol_metabulk_sync(array($course4->id), false);
 
         // Deleted user (user1) suspended in course4.
         $this->assertEquals(array($user2->id),
@@ -317,7 +317,7 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         // Set config - unenrol users who are removed from parent course and also remove role assignments.
         set_config('unenrolaction', ENROL_EXT_REMOVED_SUSPENDNOROLES, 'enrol_metabulk');
         // Run cron for course4.
-        enrol_metabulk_sync($course4->id, false);
+        enrol_metabulk_sync(array($course4->id), false);
         // User1 enrolled with suspended state in course4.
         $this->assertEquals(array($user2->id),
                 $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));
@@ -369,7 +369,7 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         // Set config - remove users who are removed from parent course.
         set_config('unenrolaction', ENROL_EXT_REMOVED_UNENROL, 'enrol_metabulk');
         // Run cron for course4.
-        enrol_metabulk_sync($course4->id, false);
+        enrol_metabulk_sync(array($course4->id), false);
         // Suspended user (user1) removed from course4.
         $this->assertEquals(array($user2->id),
                 $this->get_enroled_users($enrol4, ENROL_USER_ACTIVE));

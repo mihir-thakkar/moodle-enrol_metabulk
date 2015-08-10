@@ -120,7 +120,7 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
     $rs->close();
 
     // Unenrol as necessary - ignore enabled flag, we want to get rid of existing enrols in any case.
-    list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
+    //list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
     $onecourse = $listofcourses ? "AND e.courseid " . $coursesql : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $oneuser = $userid ? "AND ue.userid = :userid" : "";
@@ -177,7 +177,7 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
 
     // Update status - meta enrols + start and end dates are ignored, sorry.
     // Note the trick here is that the active enrolment and instance constants have value 0.
-    list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
+    //list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
     $onecourse = $listofcourses ? "AND e.courseid " . $coursesql : "";
     list($enabled, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED, 'e');
     $oneuser = $userid ? "AND ue.userid = :userid" : "";
@@ -244,7 +244,7 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
     }
     $enabled[] = ''; // Manual assignments are replicated too.
 
-    list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
+    //list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
     $onecourse = $listofcourses ? "AND e.courseid " . $coursesql : "";
     list($enabled, $params) = $DB->get_in_or_equal($enabled, SQL_PARAMS_NAMED, 'e');
     $params['coursecontext'] = CONTEXT_COURSE;
@@ -282,7 +282,7 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
     $rs->close();
 
     // Remove unwanted roles - include ignored roles and disabled plugins too.
-    list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
+    //list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
     $onecourse = $listofcourses ? "AND e.courseid " . $coursesql : "";
     $params = array();
     $params['coursecontext'] = CONTEXT_COURSE;
@@ -326,7 +326,7 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
     // Kick out or suspend users without synced roles if syncall disabled.
     if (!$syncall) {
         if ($unenrolaction == ENROL_EXT_REMOVED_UNENROL) {
-            list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
+            //list($coursesql, $courseparams) = $DB->get_in_or_equal($listofcourses, SQL_PARAMS_NAMED);
             $onecourse = $listofcourses ? "AND e.courseid " . $coursesql : "";
             $params = array();
             $params['coursecontext'] = CONTEXT_COURSE;
@@ -384,15 +384,20 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
     }
 
     // Finally sync groups.
-    $affectedusers = groups_sync_with_enrolment('metabulk', $courseid);
-    if ($verbose) {
-        foreach ($affectedusers['removed'] as $gm) {
-            mtrace("removing user from group: $gm->userid ==> $gm->courseid - $gm->groupname", 1);
-        }
-        foreach ($affectedusers['added'] as $ue) {
-            mtrace("adding user to group: $ue->userid ==> $ue->courseid - $ue->groupname", 1);
+    if(!empty($listofcourses)) {
+        foreach ($listofcourses as $course) {
+            $affectedusers = groups_sync_with_enrolment('metabulk', $course);
+            if ($verbose) {
+                foreach ($affectedusers['removed'] as $gm) {
+                    mtrace("removing user from group: $gm->userid ==> $gm->courseid - $gm->groupname", 1);
+                }
+                foreach ($affectedusers['added'] as $ue) {
+                    mtrace("adding user to group: $ue->userid ==> $ue->courseid - $ue->groupname", 1);
+                }
+            }
         }
     }
+    
 
     if ($verbose) {
         mtrace('...user enrolment synchronisation finished.');
@@ -404,9 +409,9 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
 /**
  * Create a new group with the enrol instance's name.
  *
- * @param int $courseid
- * @param int $linkedcourseid
- * @return int $groupid Group ID for this cohort.
+ * @param int $courseid,
+ * @param int $coursename
+ * @return int $groupid Group ID for this group.
  */
 function enrol_metabulk_create_new_group($courseid, $coursename) {
     global $DB, $CFG;

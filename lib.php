@@ -217,7 +217,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
             }
         }
         require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
-        enrol_metabulk_sync($instance->courseid);
+        enrol_metabulk_sync(array($instance->courseid));
         return $instance->id;
     }
 
@@ -256,7 +256,7 @@ class enrol_metabulk_plugin extends enrol_plugin {
             }
         }
         require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
-        enrol_metabulk_sync($instance->courseid);
+        enrol_metabulk_sync(array($instance->courseid));
         return $instance->id;
     }
 
