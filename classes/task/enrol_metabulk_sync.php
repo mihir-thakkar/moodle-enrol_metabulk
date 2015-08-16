@@ -30,15 +30,26 @@ defined('MOODLE_INTERNAL') || die();
  *
  * We try to keep everything in sync via listening to events,
  * it may fail sometimes, so we always do a full sync in cron too.
+ *
+ * @package    enrol_metabulk
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 class enrol_metabulk_sync extends \core\task\scheduled_task {
 
+    /**
+     * Returns localised name of the plugin.
+     * @return string
+     */
     public function get_name() {
         // Shown in admin screen.
         return get_string('pluginname', 'enrol_metabulk');
     }
 
+    /**
+     * Called for all enabled enrol plugins that returned true from is_cron_required().
+     * @return void
+     */
     public function execute() {
         global $CFG;
 

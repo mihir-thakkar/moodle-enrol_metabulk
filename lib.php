@@ -30,8 +30,9 @@ define('ENROL_METABULK_CREATE_GROUP', -1);
 
 /**
  * Meta course bulk enrolment plugin.
- * @author    Mihir Thakkar
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @author     Mihir Thakkar
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class enrol_metabulk_plugin extends enrol_plugin {
 
@@ -166,7 +167,8 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Returns all the linked courses.
-     * @param object $eid $availablecourses
+     * @param object $eid
+     * @param array $availablecourses
      * @return array of linked courses
      */
     public function get_linked_courses($eid, $availablecourses) {
@@ -182,7 +184,8 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Returns all the unlinked courses.
-     * @param object $eid $availablecourses
+     * @param object $eid
+     * @param array $availablecourses
      * @return array of unlinked courses
      */
     public function get_unlinked_courses($eid, $availablecourses) {
@@ -198,7 +201,8 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Add links to courses.
-     * @param object $instance $data
+     * @param object $instance
+     * @param object $data
      * @return int id of enrol instance
      */
     public function add_links($instance, $data) { // Todo.
@@ -223,7 +227,8 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Remove links to courses.
-     * @param object $instance $data
+     * @param object $instance
+     * @param object $data
      * @return int id of enrol instance
      */
     public function remove_links($instance, $data) { // Todo.
@@ -234,24 +239,12 @@ class enrol_metabulk_plugin extends enrol_plugin {
             foreach ($data->links as $link) {
                 if ($DB->record_exists('enrol_metabulk', array('enrolid' => $instance->id, 'courseid' => $link))) {
 
-                    /*// First unenrol all users.
-                    $participants = $DB->get_recordset('user_enrolments', array('enrolid' => $instance->id));
-                    foreach ($participants as $participant) {
-                        $this->unenrol_user($instance, $participant->userid);
-                    }
-                    $participants->close();
-
-                    // Now clean up all remainders that were not removed correctly.
-                    $DB->delete_records('groups_members', array('itemid' => $instance->id, 'component' => 'enrol_'.$name));
-                    $DB->delete_records('role_assignments', array('itemid' => $instance->id, 'component' => 'enrol_'.$name));
-                    $DB->delete_records('user_enrolments', array('enrolid' => $instance->id));
-
-                    // Finally drop the enrol metabulk row.
+                    // Drop the enrol metabulk row.
                     $DB->delete_records('enrol_metabulk', array('enrolid' => $instance->id, 'courseid' => $link));
 
                     // Invalidate all enrol caches.
                     $context = context_course::instance($instance->courseid);
-                    $context->mark_dirty();*/
+                    $context->mark_dirty();
                 }
             }
         }
@@ -262,10 +255,10 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Delete metabulk enrol plugin instance, unenrol all users.
+     *
      * @param object $instance
      * @return void
      */
-
     public function delete_instance($instance) {
         global $DB;
 
@@ -318,7 +311,8 @@ class enrol_metabulk_plugin extends enrol_plugin {
 
     /**
      * Search available courses matching the text in search box.
-     * @param object $searchtext $rowlimit
+     * @param object $searchtext
+     * @param int $rowlimit
      * @return available courses
      */
     public function search_courses($searchtext, $rowlimit) {

@@ -27,8 +27,19 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+/**
+ * Bulk meta course enrolment tests.
+ *
+ * @package    enrol_metabulk
+ * @category   phpunit
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class enrol_metabulk_plugin_testcase extends advanced_testcase {
 
+    /**
+     * Enable metabulk enrolment plugin.
+     */
     protected function enable_plugin() {
         $enabled = enrol_get_plugins(true);
         $enabled['metabulk'] = true;
@@ -36,6 +47,9 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         set_config('enrol_plugins_enabled', implode(',', $enabled));
     }
 
+    /**
+     * Disable metabulk enrolment plugin.
+     */
     protected function disable_plugin() {
         $enabled = enrol_get_plugins(true);
         unset($enabled['metabulk']);
@@ -43,6 +57,14 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         set_config('enrol_plugins_enabled', implode(',', $enabled));
     }
 
+    /**
+     * Check if user is enrolled in a metabulk enrol instance.
+     *
+     * @param int $user
+     * @param int $enrol
+     * @param int $role
+     * @return bool true if user is enrolled.
+     */
     protected function is_meta_enrolled($user, $enrol, $role = null) {
         global $DB;
 
@@ -57,6 +79,14 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         return $this->has_role($user, $enrol, $role);
     }
 
+    /**
+     * Check if user enrolled in a metabulk enrol instance has a role.
+     *
+     * @param int $user
+     * @param int $enrol
+     * @param int $role
+     * @return bool true if user has a role.
+     */
     protected function has_role($user, $enrol, $role) {
         global $DB;
 
@@ -82,6 +112,13 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         return true;
     }
 
+    /**
+     * Get all enrolled users in an enrol instance.
+     *
+     * @param int $enrol
+     * @param int $status
+     * @return array of enroled users.
+     */
     protected function get_enroled_users($enrol, $status) {
         global $DB;
         return $DB->get_fieldset_sql("SELECT userid "
@@ -90,6 +127,12 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
                 . "ORDER BY userid", array($enrol->id, $status));
     }
 
+    /**
+     * Get roles of all enrolled users in a course.
+     *
+     * @param int $course
+     * @return array of enroled users with their roles.
+     */
     protected function get_role_assignments($course) {
         global $DB;
         $context = context_course::instance($course->id);
@@ -105,6 +148,10 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         return $rv;
     }
 
+    /**
+     * Bulk meta enrolment synchronisation tests.
+     *
+     */
     public function test_sync() {
         global $CFG, $DB;
 
@@ -1079,7 +1126,7 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
 
         $this->assertEquals(array($user5->id, $user6->id, $user7->id),
                 $this->get_enroled_users($enrol5, ENROL_USER_ACTIVE));
-        // no roles for managers.
+        // No roles for managers.
         $this->assertEquals(array(
             array('userid' => $user1->id, 'roleid' => $teacher->id),
             array('userid' => $user5->id, 'roleid' => $student->id),
@@ -1261,7 +1308,7 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
     /**
      * Test course_deleted event.
      */
-    public function test_course_deleted_event() { // TODO
+    public function test_course_deleted_event() { // TODO.
         global $DB;
 
         $this->resetAfterTest(true);
@@ -1269,6 +1316,5 @@ class enrol_metabulk_plugin_testcase extends advanced_testcase {
         $metalplugin = enrol_get_plugin('metabulk');
         $course1 = $this->getDataGenerator()->create_course();
         $course2 = $this->getDataGenerator()->create_course();
-
     }
 }

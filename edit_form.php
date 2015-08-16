@@ -26,9 +26,18 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once("$CFG->libdir/formslib.php");
 
+/**
+ * enrol_metabulk edit instance form.
+ *
+ * @package    enrol_metabulk
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class enrol_metabulk_edit_form extends moodleform {
-    protected $course;
 
+    /**
+     * Form definition for manage courses.
+     */
     public function definition() {
         global $CFG, $DB;
 
@@ -76,9 +85,5 @@ class enrol_metabulk_edit_form extends moodleform {
         $buttonarray[1] = $mform->createElement('cancel');
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->closeHeaderBefore('buttonar');
-    }
-
-    public function validation($data, $files) {
-        // Validation data.
     }
 }

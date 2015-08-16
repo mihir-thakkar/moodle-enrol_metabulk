@@ -34,14 +34,12 @@ Feature: Enrolments are synchronised with meta courses
     And I am on homepage
     And I follow "Courses"
   
-
   Scenario: Add bulk meta enrolment instance to a course
     When I follow "Course 3"
     And I add "Bulk meta course link" enrolment method with:
       | Custom instance name  | testname1 |
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     Then I should see "testname1" in the "table.generaltable" "css_element"
-  
   
   Scenario: Add metabulk instance and link multiple courses in that instance
     When I follow "Course 3"
@@ -59,7 +57,6 @@ Feature: Enrolments are synchronised with meta courses
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     Then I should see "testname2" in the "table.generaltable" "css_element"
 
- 
   Scenario: Edit bulk meta enrolment instance
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
@@ -78,7 +75,6 @@ Feature: Enrolments are synchronised with meta courses
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     Then I should see "testname3" in the "table.generaltable" "css_element"
     And I should not see "testname1" in the "table.generaltable" "css_element"
-
 
   Scenario: Link and Unlink multiple courses.
     When I follow "Course 3"
@@ -100,7 +96,6 @@ Feature: Enrolments are synchronised with meta courses
     And I press "Unlink"
     And the "Link" select box should contain "Course 1, Course 2"
 
-  
   Scenario: Delete metabulk instance from a course
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"

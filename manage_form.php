@@ -26,9 +26,18 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once("$CFG->libdir/formslib.php");
 
+/**
+ * enrol_metabulk manage courses form.
+ *
+ * @package    enrol_metabulk
+ * @copyright  2015 Mihir Thakkar
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class enrol_metabulk_manage_form extends moodleform {
-    protected $course;
 
+    /**
+     * Form definition for manage courses.
+     */
     public function definition() {
         global $CFG, $DB;
 
@@ -81,9 +90,5 @@ class enrol_metabulk_manage_form extends moodleform {
         $mform->setType('id', PARAM_INT);
 
         $this->set_data($instance);
-    }
-
-    public function validation($data, $files) {
-        // Validation data.
     }
 }

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Capabilities for bulk meta link access plugin.
+ * Capabilities for bulk meta course link access plugin.
  *
  * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Adds new instance of enrol_meta_bulk to specified course.
+ * Adds new instance of enrol_metabulk to specified course.
  *
  * @package    enrol_metabulk
  * @copyright  2015 Mihir Thakkar

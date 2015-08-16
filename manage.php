@@ -61,7 +61,7 @@ $rowlimit = $enrol->get_config('addmultiple_rowlimit', 0);
 $availablecourses = array();
 $existing = $DB->get_records('enrol', array('enrol' => 'metabulk', 'courseid' => $course->id));
 
-if (!empty($searchtext)) { // TODO.
+if (!empty($searchtext)) {
     $availablecourses = $enrol->search_courses($searchtext, $rowlimit);
 } else {
     $where = '';

@@ -166,35 +166,26 @@ class enrol_metabulk_observer {
      * @return bool true on success
      */
     public static function course_deleted(\core\event\course_deleted $event) {
-        global $DB;
+        global $DB, $CFG;
 
         if (!enrol_is_enabled('metabulk')) {
-            // This is slow, let enrol_meta_sync() deal with disabled plugin.
+            // This is slow, let enrol_metabulk_sync() deal with disabled plugin.
             return true;
         }
 
-        // Does anything want to sync with this parent?
-        if (!$enrols = $DB->get_records('enrol_metabulk', array('courseid' => $event->objectid), 'courseid ASC, id ASC')) {
-            return true;
-        }
-
-        $plugin = enrol_get_plugin('metabulk');
-        $unenrolaction = $plugin->get_config('unenrolaction', ENROL_EXT_REMOVED_SUSPENDNOROLES);
-
-        if ($unenrolaction == ENROL_EXT_REMOVED_UNENROL) {
-            // Simple, just delete all the entries of that course from enrol_metabulk,
-            // admins were warned that this is risky setting!
-            $DB->delete_records('enrol_metabulk', array('courseid' => $event->objectid));
-            return true;
-        }
-
+        // Does anything want to sync with this course?
         $courses = $DB->get_fieldset_sql('SELECT DISTINCT e.courseid
-                FROM {enrol} e 
-                JOIN {enrol_metabulk} m ON (m.enrolid = e.id) 
+                FROM {enrol} e
+                JOIN {enrol_metabulk} m ON (m.enrolid = e.id)
                 WHERE m.courseid = ?', array($event->objectid));
-        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
-        enrol_metabulk_sync($courses, false);
+        if (!$courses) {
+            return true;
+        }
 
+        require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
+
+        $DB->delete_records('enrol_metabulk', array('courseid' => $event->objectid));
+        enrol_metabulk_sync($courses, false);
         return true;
     }
 
@@ -220,18 +211,15 @@ class enrol_metabulk_observer {
         }
 
         $courses = $DB->get_fieldset_sql('SELECT DISTINCT e.courseid
-                FROM {enrol} e 
-                JOIN {enrol_metabulk} m ON (m.enrolid = e.id) 
+                FROM {enrol} e
+                JOIN {enrol_metabulk} m ON (m.enrolid = e.id)
                 WHERE m.courseid = ?', array($courseid));
-        if (!$courses) {   
+        if (!$courses) {
             return;
         }
 
         $preventrecursion = true;
         try {
-           
-            //$enrolinstance = $DB->get_record('enrol', array('id' => $enrol->enrolid));
-            //$courses[] = $enrol->courseid;
             require_once("$CFG->dirroot/enrol/metabulk/locallib.php");
             enrol_metabulk_sync($courses, false);
         } catch (Exception $e) {
