@@ -24,6 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once("$CFG->dirroot/enrol/metabulk/search.js");
 require_once("$CFG->libdir/formslib.php");
 
 /**
@@ -83,9 +84,11 @@ class enrol_metabulk_manage_form extends moodleform {
         $mform->registerNoSubmitButton('links_clearbutton');
         $mform->addGroup($searchgroup, 'searchgroup', get_string('search') , array(' '), false);
 
-        $linkcontent = '<a href="/moodle/enrol/metabulk/edit.php?courseid=' . (string)$course->id . '&id=' . (string)$instance->id . '">Edit instance</a>';
+        $linkcontent = '<a href="edit.php?courseid='
+            . (string)$course->id . '&id='
+            . (string)$instance->id . '">Edit instance</a>';
         $mform->addElement('static', '', '', $linkcontent);
-        
+
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);
 

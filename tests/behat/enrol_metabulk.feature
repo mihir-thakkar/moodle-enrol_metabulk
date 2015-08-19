@@ -36,8 +36,12 @@ Feature: Enrolments are synchronised with meta courses
   
   Scenario: Add bulk meta enrolment instance to a course
     When I follow "Course 3"
-    And I add "Bulk meta course link" enrolment method with:
+    And I navigate to "Enrolment methods" node in "Course administration > Users"
+    And I set the field "Add method" to "Bulk meta course link"
+    And I press "Go"
+    And I set the following fields to these values:
       | Custom instance name  | testname1 |
+    And I press "Next"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     Then I should see "testname1" in the "table.generaltable" "css_element"
   
@@ -48,7 +52,7 @@ Feature: Enrolments are synchronised with meta courses
     And I press "Go"
     And I set the following fields to these values:
       | Custom instance name  | testname2 |
-    And I press "Add method"
+    And I press "Next"
     And I set the following fields to these values:
       | Link | Course 1, Course 2 |
     And I press "Link"
@@ -64,7 +68,7 @@ Feature: Enrolments are synchronised with meta courses
     And I press "Go"
     And I set the following fields to these values:
       | Custom instance name  | testname1 |
-    And I press "Add method"
+    And I press "Next"
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     And I click on "Edit" "link" in the "testname1" "table_row"
@@ -83,7 +87,7 @@ Feature: Enrolments are synchronised with meta courses
     And I press "Go"
     And I set the following fields to these values:
       | Custom instance name  | testname1 |
-    And I press "Add method"
+    And I press "Next"
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     And I click on "Manage" "link" in the "testname1" "table_row"
@@ -103,7 +107,7 @@ Feature: Enrolments are synchronised with meta courses
     And I press "Go"
     And I set the following fields to these values:
       | Custom instance name  | testname1 |
-    And I press "Add method"
+    And I press "Next"
     When I follow "Course 3"
     And I navigate to "Enrolment methods" node in "Course administration > Users"
     And I click on "Delete" "link" in the "testname1" "table_row"
