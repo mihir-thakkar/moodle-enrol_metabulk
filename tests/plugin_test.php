@@ -18,7 +18,6 @@
  * Bulk meta enrolment sync functional test.
  *
  * @package    enrol_metabulk
- * @category   phpunit
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -31,7 +30,6 @@ global $CFG;
  * Bulk meta course enrolment tests.
  *
  * @package    enrol_metabulk
- * @category   phpunit
  * @copyright  2015 Mihir Thakkar
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

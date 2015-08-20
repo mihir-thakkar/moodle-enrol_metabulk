@@ -24,7 +24,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once("$CFG->dirroot/enrol/metabulk/search.js");
 require_once("$CFG->libdir/formslib.php");
 
 /**
@@ -40,7 +39,10 @@ class enrol_metabulk_manage_form extends moodleform {
      * Form definition for manage courses.
      */
     public function definition() {
-        global $CFG, $DB;
+        global $CFG, $DB, $PAGE;
+
+        $PAGE->requires->jquery();
+        $PAGE->requires->js('/enrol/metabulk/search.js');
 
         $mform  = $this->_form;
         list($instance, $course, $availablecourses) = $this->_customdata;

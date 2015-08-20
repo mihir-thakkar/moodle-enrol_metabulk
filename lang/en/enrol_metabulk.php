@@ -23,7 +23,6 @@
  */
 
 $string['addgroup'] = 'Add to group';
-$string['next'] = 'Next';
 $string['coursesort'] = 'Sort course list';
 $string['coursesort_help'] = 'This determines whether the list of courses that can be linked are sorted by sort order (i.e. the order set in Site administration > Courses > Manage courses and categories) or alphabetically by course setting.';
 $string['creategroup'] = 'Create new group';
@@ -36,6 +35,7 @@ $string['metabulk:unenrol'] = 'Unenrol suspended users';
 $string['metabulk:config'] = 'Configure bulk meta enrol instances';
 $string['metabulk:selectaslinked'] = 'Select course as meta linked';
 $string['metabulk:unenrol'] = 'Unenrol suspended users';
+$string['next'] = 'Next';
 $string['nosyncroleids'] = 'Roles that are not synchronised';
 $string['nosyncroleids_desc'] = 'By default all course level role assignments are synchronised from parent to child courses. Roles that are selected here will not be included in the synchronisation process. The roles available for synchronisation will be updated in the next cron execution.';
 $string['numberofcourses'] = '{$a} Courses';
