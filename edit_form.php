@@ -61,11 +61,6 @@ class enrol_metabulk_edit_form extends moodleform {
 
         $mform->addElement('select', 'customint2', get_string('addgroup', 'enrol_metabulk'), $groups);
 
-        $linkcontent = '<a href="manage.php?courseid='
-            . (string)$course->id . '&id='
-            . (string)$instance->id . '">Manage courses</a>';
-        $mform->addElement('static', '', '', $linkcontent);
-
         $mform->addElement('hidden', 'courseid', null);
         $mform->setType('courseid', PARAM_INT);
 
@@ -73,6 +68,10 @@ class enrol_metabulk_edit_form extends moodleform {
         $mform->setType('id', PARAM_INT);
 
         if ($instance->id) {
+            $linkcontent = '<a href="manage.php?courseid='
+            . (string)$course->id . '&id='
+            . (string)$instance->id . '">Manage courses</a>';
+        $mform->addElement('static', '', '', $linkcontent);
             $this->add_action_buttons(true);
         } else {
             $this->add_add_buttons();
