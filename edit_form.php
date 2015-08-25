@@ -71,7 +71,7 @@ class enrol_metabulk_edit_form extends moodleform {
             $linkcontent = '<a href="manage.php?courseid='
             . (string)$course->id . '&id='
             . (string)$instance->id . '">Manage courses</a>';
-        $mform->addElement('static', '', '', $linkcontent);
+            $mform->addElement('static', '', '', $linkcontent);
             $this->add_action_buttons(true);
         } else {
             $this->add_add_buttons();
