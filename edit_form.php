@@ -30,7 +30,7 @@ require_once("$CFG->libdir/formslib.php");
  * enrol_metabulk edit instance form.
  *
  * @package    enrol_metabulk
- * @copyright  2015 Mihir Thakkar
+ * @copyright  2015 Mihir Thakkar, 2013 Rajesh Taneja
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class enrol_metabulk_edit_form extends moodleform {

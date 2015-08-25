@@ -18,7 +18,7 @@
  * Create and remove links to courses
  *
  * @package    enrol_metabulk
- * @copyright  2015 Mihir Thakkar
+ * @copyright  2015 Mihir Thakkar, 2013 Rajesh Taneja
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

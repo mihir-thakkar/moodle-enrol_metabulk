@@ -19,7 +19,7 @@
  *
  * @package enrol_metabulk
  * @category event
- * @copyright 2015 Mihir Thakkar
+ * @copyright  2015 Mihir Thakkar, 2013 Rajesh Taneja
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
