@@ -74,11 +74,12 @@ function enrol_metabulk_sync($listofcourses = null, $verbose = false, $userid = 
     $sql = "SELECT pue.userid, e.id as enrolid, pue.status
             FROM {user_enrolments} pue
             JOIN {enrol} pe ON (pe.id = pue.enrolid AND pe.enrol <> 'metabulk' AND pe.enrol $enabled)
-            JOIN {enrol} e ON (e.enrol = 'metabulk' $onecourse)
+            JOIN {enrol} e ON (e.enrol = 'metabulk' AND e.status = :enrolstatus $onecourse)
             JOIN {enrol_metabulk} m ON (m.enrolid = e.id AND m.courseid = pe.courseid)
             JOIN {user} u ON (u.id = pue.userid AND u.deleted = 0)
         LEFT JOIN {user_enrolments} ue ON (ue.enrolid = e.id AND ue.userid = pue.userid)
             WHERE ue.id IS NULL $oneuser";
+    $params['enrolstatus'] = ENROL_INSTANCE_ENABLED;
 
     $rs = $DB->get_recordset_sql($sql, $params);
     foreach ($rs as $ue) {
